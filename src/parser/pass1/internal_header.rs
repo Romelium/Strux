@@ -3,7 +3,7 @@
 use crate::constants::ACTION_DELETED_FILE;
 use crate::core_types::{Action, ActionType};
 use crate::errors::ParseError;
-use crate::parser::header_utils::{extract_action_path_from_captures, get_action_type};
+use crate::parser::header_utils::{extract_action_path_from_captures, get_action_type}; // Keep header_utils
 use crate::parser::helpers::ensure_trailing_newline;
 use crate::parser::internal_comment::extract_path_from_internal_comment;
 use crate::parser::path_utils::validate_path_format;
@@ -11,6 +11,7 @@ use crate::parser::regex::HEADER_REGEX;
 use std::collections::HashSet; // Import HashSet
 
 /// Checks for and handles internal headers within a code block.
+/// Applies heuristics to avoid matching comments or strings.
 /// Returns an optional Action and the header's start position if found and valid.
 /// Also updates the set of processed header start positions.
 pub(crate) fn handle_internal_header(
@@ -69,6 +70,18 @@ pub(crate) fn handle_internal_header(
 
     // Check for **Action:** or ## Action:
     if let Some(caps) = HEADER_REGEX.captures(first_line) {
+        // --- Heuristic Check ---
+        // Apply heuristics *before* trying to extract path/action
+        // Use stripped_first_line for heuristic checks as leading whitespace is irrelevant
+        if crate::parser::helpers::is_likely_comment(stripped_first_line)
+            || crate::parser::helpers::is_likely_string(stripped_first_line)
+        {
+            println!(
+                "    Info: Ignoring potential internal header (matched comment/string heuristic): '{}'",
+                stripped_first_line
+            );
+            return Ok(None); // Ignore, do not mark as processed
+        }
         // Match non-trimmed line
         if let Some((action_word, path)) = extract_action_path_from_captures(&caps) {
             if validate_path_format(&path).is_err() {
@@ -84,7 +97,7 @@ pub(crate) fn handle_internal_header(
                     "    Found internal standard header: '{}' (Excluded from output)",
                     stripped_first_line
                 );
-                processed_header_starts.insert(header_original_pos); // Mark header as processed
+                processed_header_starts.insert(header_original_pos); // Mark header as processed *only if valid action created*
                 let mut block_data = rest_content.to_string();
                 ensure_trailing_newline(&mut block_data);
                 let action = Action {
@@ -105,7 +118,7 @@ pub(crate) fn handle_internal_header(
                     "Info: Ignoring '{}:' header inside code block at original pos {}.",
                     ACTION_DELETED_FILE, header_original_pos
                 );
-                // Mark header as processed even though we ignore the action
+                // Mark header as processed even though we ignore the action, as it was explicitly matched
                 processed_header_starts.insert(header_original_pos);
                 // Return Ok(None) because no action is generated
                 return Ok(None);

@@ -9,6 +9,13 @@ pub(crate) fn extract_path_from_internal_comment<'a>(
     stripped_line: &'a str,
 ) -> Option<(String, bool)> {
     // bool is true if header line is included
+    // --- DEBUG ---
+    println!(
+        "[extract_path_from_internal_comment] Input line: '{}', stripped: '{}'",
+        line, stripped_line
+    );
+    println!("  [DEBUG] Matched INTERNAL_COMMENT_ACTION_PREFIX"); // DEBUG
+                                                                  // bool is true if header line is included
     if stripped_line.starts_with(INTERNAL_COMMENT_ACTION_PREFIX) {
         // Format: // File: path or // File: `path`
         let content = stripped_line
@@ -21,6 +28,12 @@ pub(crate) fn extract_path_from_internal_comment<'a>(
             content.to_string()
         };
         if path.is_empty() {
+            println!(
+                "  [DEBUG] Path after INTERNAL_COMMENT_ACTION_PREFIX is empty. Returning None."
+            ); // DEBUG
+            println!("  [DEBUG] Extracted path '{}' from INTERNAL_COMMENT_ACTION_PREFIX. Returning Some(..., false).", path); // DEBUG
+            println!("  [DEBUG] Did not match INTERNAL_COMMENT_ACTION_PREFIX. Trying strip_prefix('//')."); // DEBUG
+
             None
         } else {
             Some((path, false))
@@ -31,6 +44,27 @@ pub(crate) fn extract_path_from_internal_comment<'a>(
 
         // Basic validation: not empty
         if potential_path.is_empty() {
+            return None;
+        }
+
+        // Heuristic: If it looks like another header format commented out, ignore it.
+        if potential_path.starts_with("##") || potential_path.starts_with("**") {
+            // Remove "File:" check here
+            return None;
+        }
+
+        println!("  [DEBUG] potential_path after trim: '{}'", potential_path); // DEBUG
+
+        println!("  [DEBUG] Potential path '{}' rejected by heuristic (looks like ## or ** header). Returning None.", potential_path); // DEBUG
+        println!("  [DEBUG] Heuristic check passed."); // DEBUG
+
+        println!(
+            "  [DEBUG] No space after // detected. Returning Some('{}', true).",
+            potential_path
+        ); // DEBUG
+           // Heuristic: If it looks like another header format commented out, ignore it.
+        if potential_path.starts_with("##") || potential_path.starts_with("**") {
+            // Remove "File:" check here
             return None;
         }
 
@@ -46,6 +80,16 @@ pub(crate) fn extract_path_from_internal_comment<'a>(
             let looks_like_path = potential_path.contains('/')
                 || potential_path.contains('\\')
                 || potential_path.contains('.');
+            println!(
+                "  [DEBUG] Space after // detected. Checking looks_like_path: {}",
+                looks_like_path
+            ); // DEBUG
+            println!(
+                "  [DEBUG] looks_like_path is true. Returning Some('{}', false).",
+                potential_path
+            ); // DEBUG
+            println!("  [DEBUG] looks_like_path is false. Treating as comment. Returning None."); // DEBUG
+            println!("  [DEBUG] Did not match INTERNAL_COMMENT_ACTION_PREFIX and did not strip_prefix('//'). Returning None."); // DEBUG
 
             if looks_like_path {
                 Some((potential_path.to_string(), false)) // INCLUDE = FALSE

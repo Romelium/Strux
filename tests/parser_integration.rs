@@ -469,6 +469,73 @@ content
     );
 }
 
+// --- Heuristic / False Positive Tests ---
+
+#[test]
+fn test_parse_internal_header_looks_like_comment() {
+    let md = r#"
+```rust
+// ## File: commented_out.rs
+let x = 1;
+```
+"#;
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert!(
+        actions.is_empty(),
+        "Internal header matching comment heuristic should be ignored"
+    );
+}
+
+#[test]
+fn test_parse_internal_header_looks_like_string() {
+    let md = r#"
+```javascript
+const errorMsg = "**File: config.json** not found";
+console.log(errorMsg);
+```
+"#;
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert!(
+        actions.is_empty(),
+        "Internal header matching string heuristic should be ignored"
+    );
+}
+
+#[test]
+fn test_parse_internal_header_looks_like_string_backticks() {
+    let md = r#"
+```python
+query = f"""**File: query.sql**
+SELECT * FROM users;
+"""
+print(query)
+```
+"#;
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert!(
+        actions.is_empty(),
+        "Internal header matching backtick string heuristic should be ignored"
+    );
+}
+
+#[test]
+fn test_parse_standalone_header_inside_code_block_ignored_by_pass2() {
+    // This header is *not* on the first line, so Pass 1 ignores it.
+    // Pass 2 should also ignore it because it's inside a processed code block range.
+    let md = r#"
+```
+Some code here.
+**Deleted File: should_be_ignored.txt**
+More code.
+```
+"#;
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert!(
+        actions.is_empty(),
+        "Standalone header inside code block should be ignored by Pass 2"
+    );
+}
+
 // --- Nested Blocks and Line Ending Tests ---
 
 #[test]

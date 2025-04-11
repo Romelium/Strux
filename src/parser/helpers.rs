@@ -4,7 +4,7 @@ use crate::core_types::{Action, ActionType};
 use once_cell::sync::Lazy; // For static regex
 use regex::Regex;
 // Removed unused ParseError
-use std::collections::HashMap;
+use std::collections::HashMap; // Keep HashMap for check_action_conflicts
 
 // --- Moved to header_utils.rs ---
 // extract_action_path_from_captures
@@ -89,4 +89,31 @@ pub(crate) fn ensure_trailing_newline(content: &mut String) {
     if !content.is_empty() && !content.ends_with('\n') {
         content.push('\n');
     }
+}
+
+/// Heuristic check if a line likely starts with a common single-line comment marker.
+pub(crate) fn is_likely_comment(line: &str) -> bool {
+    let trimmed = line.trim_start();
+    trimmed.starts_with("//")
+        || trimmed.starts_with('#')
+        || trimmed.starts_with("--") // SQL, Haskell, Lua
+        || trimmed.starts_with(';') // Lisp, Assembly, INI
+        || trimmed.starts_with('%') // TeX, Prolog
+        || trimmed.starts_with("/*") // Start of block comment (less likely on its own line, but possible)
+        || trimmed.starts_with("<!--") // HTML/XML comment
+}
+
+/// Heuristic check if a line likely represents a simple string literal assignment or declaration.
+/// Focuses on lines starting and ending with common delimiters.
+pub(crate) fn is_likely_string(line: &str) -> bool {
+    let trimmed = line.trim();
+    if trimmed.len() < 2 {
+        return false; // Too short to be a delimited string
+    }
+    // Check common pairs
+    (trimmed.starts_with('"') && trimmed.ends_with('"'))
+        || (trimmed.starts_with('\'') && trimmed.ends_with('\''))
+        || (trimmed.starts_with('`') && trimmed.ends_with('`'))
+    // Optional: Check for common assignment patterns (simple cases)
+    // || (trimmed.contains('=') && (trimmed.ends_with(';') || trimmed.ends_with(','))) // e.g., var x = "...";
 }

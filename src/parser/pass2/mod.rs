@@ -17,7 +17,7 @@ pub(crate) fn run_pass2(
     parse_offset: usize,
     actions_with_pos: &mut Vec<(usize, Action)>,
     processed_header_starts: &HashSet<usize>, // Read-only access needed
-    _processed_code_block_ranges: &HashSet<(usize, usize)>, // Revert: No longer needed, prefix with _
+    processed_code_block_ranges: &HashSet<(usize, usize)>, // Use this to skip headers inside blocks
 ) -> Result<(), ParseError> {
     for caps in HEADER_REGEX.captures_iter(content_to_parse) {
         let header_match = caps.get(0).unwrap(); // The whole match
@@ -30,7 +30,23 @@ pub(crate) fn run_pass2(
             continue;
         }
 
-        // Revert: Remove the check for is_inside_processed_block
+        // Skip if this header falls within a code block range processed by Pass 1
+        // Use header_start_rel for comparison with ranges relative to content_to_parse
+        let is_inside_block =
+            processed_code_block_ranges
+                .iter()
+                .any(|&(block_start, block_end)| {
+                    // --- DEBUG PRINT ---
+                    // println!(
+                    //     "  [Pass 2 Check] HeaderRel={}, BlockRange=({},{}), Inside={}",
+                    //     header_start_rel, block_start, block_end,
+                    //     header_start_rel >= block_start && header_start_rel < block_end
+                    // );
+                    header_start_rel >= block_start && header_start_rel < block_end
+                });
+        if is_inside_block {
+            continue;
+        }
 
         // DEBUG: Log attempt to extract (Remove this line)
         // println!("  [Pass 2] Checking header at pos {}: '{}'", original_header_pos, header_match.as_str().trim());

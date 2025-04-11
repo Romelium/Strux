@@ -103,7 +103,6 @@ pub(crate) fn run_pass1(
             action.original_pos = original_pos;
             actions_with_pos.push((original_pos, action));
             processed_header_starts.insert(original_pos); // Mark header associated with action
-            processed_code_block_ranges.insert((fence_start_pos, block_outer_end));
         } else if !processed_this_block {
             // Check if the block was skipped because of an *ignored* internal header
             // (which would have been marked in processed_header_starts by handle_internal_header)
@@ -115,6 +114,9 @@ pub(crate) fn run_pass1(
                 );
             }
         }
+
+        // Always record the block range if we successfully found opening and closing fences
+        processed_code_block_ranges.insert((fence_start_pos, block_outer_end));
     }
     Ok(())
 }
