@@ -29,7 +29,8 @@ pub static HEADER_REGEX: Lazy<Regex> = Lazy::new(|| {
 // Regex to find the START of a fenced code block.
 pub static OPENING_FENCE_REGEX: Lazy<Regex> = Lazy::new(|| {
     // Use raw string literal
-    Regex::new(r"(?m)^\s*(?P<fence>```|````)(?P<lang>[^\n]*)\n")
+    // Handle optional carriage return for CRLF compatibility
+    Regex::new(r"(?m)^\s*(?P<fence>```|````)(?P<lang>[^\n\r]*)(\r?\n)")
         .expect("Failed to compile OPENING_FENCE_REGEX")
 });
 
