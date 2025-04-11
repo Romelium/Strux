@@ -56,36 +56,14 @@ pub enum ProcessError {
     InvalidPathFormat { path: String },
     #[error("Cannot perform operation. Target path '{path}' exists and is a directory.")]
     TargetIsDirectory { path: PathBuf },
-    // Removed: TargetIsNotFile error as it was only used by patch validation
     // #[error("Cannot perform operation. Target path '{path}' is not a file.")]
     // TargetIsNotFile { path: PathBuf },
     #[error(
         "Cannot create file '{path}'. Parent path '{parent_path}' exists but is not a directory."
     )]
     ParentIsNotDirectory { path: PathBuf, parent_path: PathBuf },
-    // Removed: Patch error variant
-    // #[error("Patch error for '{path}': {source}")]
-    // Patch {
-    //     path: PathBuf,
-    //     #[source]
-    //     source: PatchError,
-    // },
     #[error("Unknown action type encountered")]
     UnknownAction, // Should not happen if parsing is correct
     #[error("Unexpected internal error: {0}")]
     Internal(String),
 }
-
-// --- Patching Errors ---
-// Removed: PatchError enum
-// #[derive(Error, Debug, PartialEq, Eq)]
-// pub enum PatchError {
-//     #[error("Patch block must contain exactly two '...' lines. Found {0}.")]
-//     InvalidFormat(usize),
-//     #[error("Patch context not found.")]
-//     ContextNotFound,
-//     #[error("Patch context is ambiguous. Found {0} possible locations.")]
-//     AmbiguousContext(usize),
-//     #[error("Target file for patching not found.")]
-//     TargetMissing, // Often surfaced as ProcessError::Io, but can be specific
-// }

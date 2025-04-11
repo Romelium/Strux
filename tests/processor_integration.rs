@@ -46,7 +46,7 @@ fn assert_summary(
         "Summary: failed_unsafe mismatch"
     );
     assert_eq!(
-        summary.failed_isdir_create_patch, failed_isdir_create,
+        summary.failed_isdir_create, failed_isdir_create,
         "Summary: failed_isdir_create mismatch"
     ); // Note field name
     assert_eq!(

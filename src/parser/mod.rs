@@ -51,8 +51,8 @@ pub fn parse_markdown(markdown_content: &str) -> Result<Vec<Action>, ParseError>
         &mut processed_code_block_ranges,
     )?;
 
-    // --- Pass 2: Find standalone Delete headers and orphaned Create/Patch ---
-    println!("\nStep 2: Locating standalone Delete headers and orphaned Create/Patch...");
+    // --- Pass 2: Find standalone Delete headers and orphaned Create ---
+    println!("\nStep 2: Locating standalone Delete headers and orphaned Create...");
     pass2::run_pass2(
         // Now calls the function in the pass2 module
         content_to_parse,

@@ -2,7 +2,7 @@
 
 use crate::core_types::{Action, ActionType, Summary};
 use crate::errors::ProcessError;
-use crate::processor::{create, delete, /* Removed patch_apply */ safety, summary_updater};
+use crate::processor::{create, delete, safety, summary_updater};
 use std::path::{Path, PathBuf};
 
 /// Processes a single action item, handling path validation, safety, and dispatching.
@@ -89,9 +89,6 @@ pub(crate) fn process_single_action(
         .map(|status| summary_updater::update_summary_create(summary, status)),
         ActionType::Delete => delete::process_delete(&potential_full_path, relative_path_str)
             .map(|status| summary_updater::update_summary_delete(summary, status)),
-        // Removed Patch case
-        // ActionType::Patch => patch_apply::process_patch(item, &potential_full_path, relative_path_str)
-        //      .map(|status| summary_updater::update_summary_patch(summary, status)),
     };
 
     // --- Handle Errors from Action Handlers ---

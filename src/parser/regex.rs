@@ -16,9 +16,10 @@ pub static HEADER_REGEX: Lazy<Regex> = Lazy::new(|| {
     // Order: Bold Action, Hash Backtick, Hash Action, Backtick Only, Numbered Backtick, Bold Backtick
     // ALL PARTS COMBINED INTO A SINGLE RAW STRING LITERAL for format!
     // Use [^\n] instead of . in capture groups to prevent matching across lines.
+    // Added optional trailing text `(?:\s[^\n]*)?` to backtick_only and bold_backtick patterns.
     let pattern = format!(
         // Start of the single raw string literal containing the entire pattern
-        r"(?m)^(?:\*\*\s*(?P<action_word_bold>{actions}):\s+(?P<content_bold>[^\n]+?)\s*\*\*(?:\s[^\n]*)?|##\s+`(?P<path_hash_backtick>[^`\n]+?)`\s*|##\s+(?P<action_word_hash>{actions}):\s*(?P<content_hash>[^\n]*?)\s*|`(?P<path_backtick_only>[^`\n]+?)`(?:\s[^\n]*)?|\d+\.\s+`(?P<path_numbered_backtick>[^`\n]+?)`(?:\s[^\n]*)?|\*\*\s*`(?P<path_bold_backtick>[^`\n]+?)`\s*\*\*(?:\s[^\n]*)?)$",
+        r"(?m)^(?:\*\*\s*(?P<action_word_bold>{actions}):\s+(?P<content_bold>[^\n]+?)\s*\*\*(?:\s[^\n]*)?|##\s+`(?P<path_hash_backtick>[^`\n]+?)`\s*(?:\s[^\n]*)?|##\s+(?P<action_word_hash>{actions}):\s*(?P<content_hash>[^\n]*?)\s*(?:\s[^\n]*)?|`(?P<path_backtick_only>[^`\n]+?)`(?:\s[^\n]*)?|(?P<num>\d+)\.\s+`(?P<path_numbered_backtick>[^`\n]+?)`(?:\s[^\n]*)?|\*\*\s*`(?P<path_bold_backtick>[^`\n]+?)`\s*\*\*(?:\s[^\n]*)?)$",
         // Arguments for format! start after the format string literal
         actions = actions
     );
@@ -137,6 +138,42 @@ pub fn debug_hash_regexes() {
         ),
         None => println!("  Combined FAILED TO MATCH Input 2c"),
     }
+
+    // Test bold backtick path
+    let input_bold_tick = "**`bold/tick.js`**";
+    println!("Input bold backtick: '{}'", input_bold_tick);
+    match HEADER_REGEX.captures(input_bold_tick) {
+        Some(caps) => println!(
+            "  Combined MATCHED bold backtick: path_bold_backtick='{:?}'",
+            caps.name("path_bold_backtick").map(|m| m.as_str())
+        ),
+        None => println!("  Combined FAILED TO MATCH bold backtick"),
+    }
+
+    // Test the previously failing cases
+    let input_backtick_trailing = "`simple/path.rs` (some comment)";
+    println!("Input backtick trailing: '{}'", input_backtick_trailing);
+    match HEADER_REGEX.captures(input_backtick_trailing) {
+        Some(caps) => println!(
+            "  Combined MATCHED backtick trailing: path_backtick_only='{:?}'",
+            caps.name("path_backtick_only").map(|m| m.as_str())
+        ),
+        None => println!("  Combined FAILED TO MATCH backtick trailing"),
+    }
+
+    let input_bold_backtick_trailing = "**`bold/tick.js`** and more";
+    println!(
+        "Input bold backtick trailing: '{}'",
+        input_bold_backtick_trailing
+    );
+    match HEADER_REGEX.captures(input_bold_backtick_trailing) {
+        Some(caps) => println!(
+            "  Combined MATCHED bold backtick trailing: path_bold_backtick='{:?}'",
+            caps.name("path_bold_backtick").map(|m| m.as_str())
+        ),
+        None => println!("  Combined FAILED TO MATCH bold backtick trailing"),
+    }
+
     println!("--- End Regex Debug ---");
 }
 // --- END TEMPORARY DEBUG FUNCTION ---

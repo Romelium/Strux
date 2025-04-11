@@ -1,8 +1,8 @@
 //! Helper functions for the markdown parser.
 
 use crate::core_types::{Action, ActionType};
-use once_cell::sync::Lazy; // For static regex
-use regex::Regex;
+// Removed unused import: once_cell::sync::Lazy;
+// Removed unused import: regex::Regex;
 // Removed unused ParseError
 use std::collections::HashMap; // Keep HashMap for check_action_conflicts
 
@@ -16,42 +16,23 @@ use std::collections::HashMap; // Keep HashMap for check_action_conflicts
 // --- Moved to internal_comment.rs ---
 // extract_path_from_internal_comment
 
-/// Regex to find the last closing ``` fence on its own line, possibly with whitespace.
-static LAST_CLOSING_FENCE_REGEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?m)^\s*```\s*$").expect("Failed to compile LAST_CLOSING_FENCE_REGEX")
-});
+// --- REMOVED UNUSED REGEX ---
+// /// Regex to find the last closing ``` fence on its own line, possibly with whitespace.
+// static LAST_CLOSING_FENCE_REGEX: Lazy<Regex> = Lazy::new(|| {
+//     Regex::new(r"(?m)^\s*```\s*$").expect("Failed to compile LAST_CLOSING_FENCE_REGEX")
+// });
 
 /// Handles the initial check for and potential stripping of ```markdown blocks.
 /// Returns the content slice to parse and the starting offset.
 pub(crate) fn preprocess_markdown(markdown_content: &str) -> (&str, usize) {
-    // Check if the content starts with ```markdown (potentially after whitespace)
-    // and ends with ``` (potentially before whitespace)
-    let trimmed_content = markdown_content.trim();
-    if trimmed_content.starts_with("```markdown") && trimmed_content.ends_with("```") {
-        // More thorough check: find the first newline after ```markdown
-        if let Some(first_newline_idx_after_trim_start) = trimmed_content.find('\n') {
-            let content_after_first_line =
-                &trimmed_content[first_newline_idx_after_trim_start + 1..];
-            // Find the *last* potential closing fence within the trimmed content
-            if let Some(last_fence_match) = LAST_CLOSING_FENCE_REGEX
-                .find_iter(content_after_first_line)
-                .last()
-            {
-                // Check if the closing fence is indeed at the very end of the inner content
-                if last_fence_match.end() == content_after_first_line.len() {
-                    println!("Info: Input appears fully wrapped in '```markdown ... ```', ignoring content.");
-                    return ("", markdown_content.len()); // Ignore everything
-                }
-            }
-        } else if trimmed_content == "```markdown" {
-            // Handle case where file *only* contains ```markdown
-            println!("Info: Input file only contained '```markdown'.");
-            return ("", markdown_content.len());
-        }
-        // If it starts with ```markdown but doesn't seem fully wrapped, fall through to old logic
-    }
+    // Simplified logic: Only check if the *very first non-whitespace line* is exactly ```markdown
+    // This avoids incorrectly consuming the whole file if it happens to end with ``` later.
+    // The regular parser logic (Pass 1) should handle ```markdown blocks correctly anyway,
+    // including wrapped headers. This preprocessing step was likely causing more harm than good.
+    // We keep the check for the *very first line* being ```markdown just in case someone
+    // explicitly starts their file that way intending it as a non-actionable wrapper.
+    // Check only the very first line
 
-    // Original logic: Check only the very first line if not fully wrapped
     if let Some(first_newline_idx) = markdown_content.find('\n') {
         let first_line = &markdown_content[..first_newline_idx];
         if first_line.trim() == "```markdown" {
@@ -61,6 +42,11 @@ pub(crate) fn preprocess_markdown(markdown_content: &str) -> (&str, usize) {
             println!("  (Parsing content starting from offset {parse_offset})");
             return (content_to_parse, parse_offset);
         }
+    }
+    // Also handle the case where the *entire file* is just "```markdown"
+    if markdown_content.trim() == "```markdown" {
+        println!("Info: Input file only contained '```markdown'.");
+        return ("", markdown_content.len());
     }
 
     // No wrapper detected at the start, parse everything

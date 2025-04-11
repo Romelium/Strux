@@ -11,13 +11,13 @@ use markdown_processor::{parse_markdown, print_summary, process_actions, AppErro
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None,
     after_help = "Processes a structured markdown file to generate or delete files.\n\
-                  Recognizes various header formats (see README/docs)." // Removed patching reference
+                  Recognizes various header formats (see README/docs)."
 )]
 struct Cli {
     /// Path to the markdown file containing the project structure.
     markdown_file: PathBuf,
 
-    /// The base directory to create/delete files in (default: ./project-generated). // Removed patching reference
+    /// The base directory to create/delete files in (default: ./project-generated).
     #[arg(short, long, value_name = "DIR", default_value = "./project-generated")]
     output_dir: PathBuf, // Use default_value directly
 

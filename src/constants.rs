@@ -6,10 +6,6 @@ use regex; // Needed for regex::escape
 // --- Action Keywords ---
 pub const ACTION_FILE: &str = "File";
 pub const ACTION_DELETED_FILE: &str = "Deleted File";
-// Removed: pub const ACTION_PATCH_FILE: &str = "Patch File";
-
-// --- Patching ---
-// Removed: pub const PATCH_MARKER: &str = "...";
 
 // --- Parsing ---
 pub const INTERNAL_COMMENT_ACTION_PREFIX: &str = "// File:";
@@ -17,7 +13,7 @@ pub const INTERNAL_COMMENT_ACTION_PREFIX: &str = "// File:";
 // Helper to build the VALID_ACTIONS_REGEX string component once.
 // This is used by the regex definition in `parser::regex`.
 pub static VALID_ACTIONS_REGEX_STR: Lazy<String> = Lazy::new(|| {
-    [ACTION_FILE, ACTION_DELETED_FILE] // Removed ACTION_PATCH_FILE
+    [ACTION_FILE, ACTION_DELETED_FILE]
         .iter()
         .map(|a| regex::escape(a))
         .collect::<Vec<_>>()

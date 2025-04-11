@@ -1,4 +1,4 @@
-//! Orchestrates the processing of parsed file actions (create, delete). // Removed patch
+//! Orchestrates the processing of parsed file actions (create, delete).
 
 use crate::core_types::{Action, Summary};
 use crate::errors::AppError;
@@ -6,12 +6,11 @@ use std::fs;
 use std::path::Path;
 
 // Declare processor submodules
+mod action_handler;
 mod create;
 mod delete;
-// Removed: mod patch_apply;
-mod action_handler;
 mod safety;
-mod summary_updater; // Added // Added
+mod summary_updater;
 
 /// Processes a list of actions against the filesystem relative to a base directory.
 pub fn process_actions(
@@ -99,5 +98,4 @@ fn setup_base_directory(base_dir_to_setup: &Path) -> Result<(), AppError> {
 // --- Moved to summary_updater.rs ---
 // update_summary_create
 // update_summary_delete
-// update_summary_patch
 // update_summary_error

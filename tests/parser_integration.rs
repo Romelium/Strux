@@ -441,3 +441,152 @@ fn test_parse_content_no_trailing_newline() {
         Some("col1,col2\nval1,val2\n"), // Newline added
     );
 }
+
+// --- NEW: Wrapped Header Tests ---
+
+#[test]
+fn test_parse_wrapped_hash_file_header() {
+    let md = "\n```markdown\n## File: wrapped/config.toml\n```\n\n```toml\n[settings]\nkey = \"value\"\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert_eq!(actions.len(), 1);
+    assert_action(
+        actions.first(),
+        ActionType::Create,
+        "wrapped/config.toml",
+        Some("[settings]\nkey = \"value\"\n"),
+    );
+}
+
+#[test]
+fn test_parse_wrapped_hash_file_header_two() {
+    let md = "\n```markdown\n## File: wrapped/config.toml\n```\n\n```toml\n[settings]\nkey = \"value\"\n```\n\n```markdown\n## File: wrapped/config2.toml\n```\n\n```toml\n[settings]\nkey = \"value\"\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert_eq!(actions.len(), 2);
+    assert_action(
+        actions.first(),
+        ActionType::Create,
+        "wrapped/config.toml",
+        Some("[settings]\nkey = \"value\"\n"),
+    );
+    assert_action(
+        actions.get(1),
+        ActionType::Create,
+        "wrapped/config2.toml",
+        Some("[settings]\nkey = \"value\"\n"),
+    );
+}
+
+#[test]
+fn test_parse_wrapped_bold_file_header() {
+    let md = "\n```md\n**File: src/main.js**\n```\n\n```javascript\nconsole.log('Hello');\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert_eq!(actions.len(), 1);
+    assert_action(
+        actions.first(),
+        ActionType::Create,
+        "src/main.js",
+        Some("console.log('Hello');\n"),
+    );
+}
+
+#[test]
+fn test_parse_wrapped_hash_deleted_file_header() {
+    let md = "\nSome text.\n\n```markdown\n## Deleted File: old/data.json\n```\n\nMore text.\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert_eq!(actions.len(), 1);
+    assert_action(actions.first(), ActionType::Delete, "old/data.json", None);
+}
+
+#[test]
+fn test_parse_wrapped_bold_deleted_file_header() {
+    let md = "\n```md\n**Deleted File: temp.log**\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert_eq!(actions.len(), 1);
+    assert_action(actions.first(), ActionType::Delete, "temp.log", None);
+}
+
+#[test]
+fn test_parse_wrapped_file_header_not_followed_by_block() {
+    let md =
+        "\n```markdown\n## File: orphan_wrapped.txt\n```\n\nThis is just text, not a code block.\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert!(
+        actions.is_empty(),
+        "Wrapped File header not followed by code block should be ignored"
+    );
+}
+
+#[test]
+fn test_parse_wrapped_file_header_followed_by_non_adjacent_block() {
+    let md = "\n```markdown\n## File: spaced_out.txt\n```\n\nSome separating text.\n\n```\nContent\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert!(
+        actions.is_empty(),
+        "Wrapped File header not immediately followed by code block should be ignored"
+    );
+}
+
+#[test]
+fn test_parse_wrapped_header_invalid_path() {
+    let md = "\n```markdown\n## File: invalid//path.cfg\n```\n\n```\n[ignored]\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert!(
+        actions.is_empty(),
+        "Wrapped header with invalid path should be ignored"
+    );
+}
+
+#[test]
+fn test_parse_markdown_block_multiple_lines() {
+    let md =
+        "\n```markdown\n## File: multi.txt\nThis is a second line.\n```\n\n```\nContent\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert!(
+        actions.is_empty(),
+        "Markdown block with multiple lines should not be treated as a header block"
+    );
+}
+
+#[test]
+fn test_parse_markdown_block_not_a_header() {
+    let md = "\n```markdown\nJust some markdown text inside.\n```\n\n```\nContent\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert!(
+        actions.is_empty(),
+        "Markdown block with non-header line should be ignored"
+    );
+}
+
+#[test]
+fn test_parse_mixed_wrapped_and_unwrapped() {
+    let md = "\n## File: unwrapped1.txt\n```\nUnwrapped 1\n```\n\n```markdown\n## File: wrapped1.txt\n```\n```\nWrapped 1\n```\n\n```markdown\n## Deleted File: wrapped_del.log\n```\n\n**Deleted File: unwrapped_del.log**\n\n`unwrapped2.txt`\n```\nUnwrapped 2\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert_eq!(actions.len(), 5, "Expected 5 actions");
+
+    // Check order and details
+    assert_action(
+        actions.first(),
+        ActionType::Create,
+        "unwrapped1.txt",
+        Some("Unwrapped 1\n"),
+    );
+    assert_action(
+        actions.get(1),
+        ActionType::Create,
+        "wrapped1.txt",
+        Some("Wrapped 1\n"),
+    );
+    assert_action(actions.get(2), ActionType::Delete, "wrapped_del.log", None);
+    assert_action(
+        actions.get(3),
+        ActionType::Delete,
+        "unwrapped_del.log",
+        None,
+    );
+    assert_action(
+        actions.get(4),
+        ActionType::Create,
+        "unwrapped2.txt",
+        Some("Unwrapped 2\n"),
+    );
+}

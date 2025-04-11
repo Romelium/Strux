@@ -62,7 +62,7 @@ pub(crate) fn handle_internal_header(
             action_type: ActionType::Create,
             path,
             content: Some(final_content),
-            /* Removed patch_content */ original_pos: 0,
+            original_pos: 0,
         };
         println!("     -> Added CREATE action for '{}'", action.path);
         return Ok(Some((action, block_content_start)));
@@ -92,7 +92,6 @@ pub(crate) fn handle_internal_header(
                 return Ok(None);
             }
             if let Some(action_type @ ActionType::Create) = get_action_type(&action_word) {
-                // Removed Patch check
                 println!(
                     "    Found internal standard header: '{}' (Excluded from output)",
                     stripped_first_line
@@ -104,7 +103,7 @@ pub(crate) fn handle_internal_header(
                     action_type,
                     path,
                     content: Some(block_data),
-                    /* Removed patch_content */ original_pos: 0,
+                    original_pos: 0,
                 };
                 println!(
                     "     -> Added {} action for '{}'",
@@ -112,7 +111,6 @@ pub(crate) fn handle_internal_header(
                     action.path
                 );
                 return Ok(Some((action, block_content_start)));
-            // Removed Patch handling block
             } else if get_action_type(&action_word) == Some(ActionType::Delete) {
                 println!(
                     "Info: Ignoring '{}:' header inside code block at original pos {}.",

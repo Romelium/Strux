@@ -1,6 +1,6 @@
 //! Utilities for parsing markdown header lines (e.g., **Action: path**).
 
-use crate::constants::{ACTION_DELETED_FILE /* Removed ACTION_PATCH_FILE */, ACTION_FILE};
+use crate::constants::{ACTION_DELETED_FILE, ACTION_FILE};
 use crate::core_types::ActionType;
 use regex::Captures;
 
@@ -90,7 +90,6 @@ pub(crate) fn get_action_type(action_word: &str) -> Option<ActionType> {
     match action_word {
         ACTION_FILE => Some(ActionType::Create),
         ACTION_DELETED_FILE => Some(ActionType::Delete),
-        // Removed: ACTION_PATCH_FILE => Some(ActionType::Patch),
         _ => None,
     }
 }
@@ -246,6 +245,6 @@ mod tests {
     fn test_get_action_type_invalid() {
         assert_eq!(get_action_type("Create File"), None);
         assert_eq!(get_action_type(""), None);
-        assert_eq!(get_action_type(" Patch File "), None); // Patch removed
+        assert_eq!(get_action_type(" Patch File "), None);
     }
 }

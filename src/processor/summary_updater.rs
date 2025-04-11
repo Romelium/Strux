@@ -1,7 +1,7 @@
 //! Helper functions to update the Summary struct based on processing outcomes.
 
 use crate::core_types::{CreateStatus, DeleteStatus, Summary}; // Import enums directly
-use crate::errors::{/* Removed PatchError */ ProcessError};
+use crate::errors::ProcessError;
 
 pub(crate) fn update_summary_create(summary: &mut Summary, status: CreateStatus) {
     match status {
@@ -20,23 +20,15 @@ pub(crate) fn update_summary_delete(summary: &mut Summary, status: DeleteStatus)
     }
 }
 
-// Removed: update_summary_patch function
-
 pub(crate) fn update_summary_error(summary: &mut Summary, error: ProcessError) {
     match error {
         ProcessError::Io { .. } | ProcessError::PathResolution { .. } => summary.failed_io += 1,
         ProcessError::PathNotSafe { .. } | ProcessError::InvalidPathFormat { .. } => {
             summary.failed_unsafe += 1
         }
-        ProcessError::TargetIsDirectory { .. } => summary.failed_isdir_create_patch += 1, // Renamed field
+        ProcessError::TargetIsDirectory { .. } => summary.failed_isdir_create += 1, // Renamed field
         ProcessError::ParentIsNotDirectory { .. } => summary.failed_parent_isdir += 1,
         ProcessError::UnknownAction | ProcessError::Internal(_) => summary.error_other += 1,
-        // Removed Patch error cases
-        // ProcessError::TargetIsNotFile { .. } => summary.failed_patch_target_not_file += 1,
-        // ProcessError::Patch { source: PatchError::InvalidFormat(_), .. } => summary.failed_patch_format += 1,
-        // ProcessError::Patch { source: PatchError::ContextNotFound, .. } => summary.failed_patch_context += 1,
-        // ProcessError::Patch { source: PatchError::AmbiguousContext(_), .. } => summary.failed_patch_ambiguous += 1,
-        // ProcessError::Patch { source: PatchError::TargetMissing, .. } => summary.failed_patch_target_missing += 1,
     }
 }
 
@@ -125,7 +117,7 @@ mod tests {
                 path: PathBuf::new(),
             },
         );
-        assert_eq!(summary.failed_isdir_create_patch, 1);
+        assert_eq!(summary.failed_isdir_create, 1);
 
         summary = empty_summary();
         update_summary_error(
