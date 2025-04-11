@@ -9,4 +9,5 @@ mod create;
 mod delete;
 mod errors;
 mod interactions;
+mod multi_file;
 mod overwrite_skip;
