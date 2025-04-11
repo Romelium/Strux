@@ -62,12 +62,7 @@ fn assert_summary(
 #[test]
 fn test_process_create_file() {
     let temp_dir = setup_temp_dir();
-    let md = r#"
-## File: new_file.txt
-```
-This is a new file.
-```
-"#;
+    let md = "\n## File: new_file.txt\n```\nThis is a new file.\n```\n";
 
     let (summary, _) = run_processor(md, &temp_dir, false).expect("Processing failed");
 
@@ -83,14 +78,7 @@ This is a new file.
 #[test]
 fn test_process_create_with_parent_dir() {
     let temp_dir = setup_temp_dir();
-    let md = r#"
-`src/app/main.rs`
-```rust
-fn main() {
-    println!("Hello");
-}
-```
-"#;
+    let md = "\n`src/app/main.rs`\n```rust\nfn main() {\n    println!(\"Hello\");\n}\n```\n";
 
     let (summary, _) = run_processor(md, &temp_dir, false).expect("Processing failed");
 
@@ -112,9 +100,7 @@ fn test_process_delete_file() {
         .child("to_delete.log")
         .write_str("Log data")
         .unwrap();
-    let md = r#"
-**Deleted File: to_delete.log**
-"#;
+    let md = "\n**Deleted File: to_delete.log**\n";
 
     let (summary, _) = run_processor(md, &temp_dir, false).expect("Processing failed");
 
@@ -127,14 +113,7 @@ fn test_process_delete_file() {
 #[test]
 fn test_process_create_then_delete() {
     let temp_dir = setup_temp_dir();
-    let md = r#"
-## File: temp.txt
-```
-Temporary content
-```
-
-**Deleted File: temp.txt**
-"#;
+    let md = "\n## File: temp.txt\n```\nTemporary content\n```\n\n**Deleted File: temp.txt**\n";
 
     let (summary, _) = run_processor(md, &temp_dir, false).expect("Processing failed");
 
@@ -151,14 +130,7 @@ fn test_process_delete_then_create() {
         .child("recreate.txt")
         .write_str("Old content")
         .unwrap();
-    let md = r#"
-## Deleted File: recreate.txt
-
-## File: recreate.txt
-```
-New content
-```
-"#;
+    let md = "\n## Deleted File: recreate.txt\n\n## File: recreate.txt\n```\nNew content\n```\n";
 
     let (summary, _) = run_processor(md, &temp_dir, false).expect("Processing failed");
 
@@ -178,12 +150,7 @@ fn test_process_create_skip_existing_no_force() {
         .child("existing.txt")
         .write_str("Original")
         .unwrap();
-    let md = r#"
-## File: existing.txt
-```
-New content, should be ignored
-```
-"#;
+    let md = "\n## File: existing.txt\n```\nNew content, should be ignored\n```\n";
 
     let (summary, _) = run_processor(md, &temp_dir, false).expect("Processing failed"); // overwrite = false
 
@@ -198,12 +165,7 @@ fn test_process_create_overwrite_existing_with_force() {
         .child("existing.txt")
         .write_str("Original")
         .unwrap();
-    let md = r#"
-## File: existing.txt
-```
-New content, should overwrite
-```
-"#;
+    let md = "\n## File: existing.txt\n```\nNew content, should overwrite\n```\n";
 
     let (summary, _) = run_processor(md, &temp_dir, true).expect("Processing failed"); // overwrite = true
 
@@ -216,9 +178,7 @@ New content, should overwrite
 #[test]
 fn test_process_delete_skip_not_found() {
     let temp_dir = setup_temp_dir();
-    let md = r#"
-**Deleted File: missing.txt**
-"#;
+    let md = "\n**Deleted File: missing.txt**\n";
 
     let (summary, _) = run_processor(md, &temp_dir, false).expect("Processing failed");
 
@@ -232,9 +192,7 @@ fn test_process_delete_skip_not_found() {
 fn test_process_delete_skip_is_directory() {
     let temp_dir = setup_temp_dir();
     temp_dir.child("a_directory").create_dir_all().unwrap();
-    let md = r#"
-## Deleted File: a_directory
-"#;
+    let md = "\n## Deleted File: a_directory\n";
 
     let (summary, _) = run_processor(md, &temp_dir, false).expect("Processing failed");
 
@@ -250,12 +208,7 @@ fn test_process_delete_skip_is_directory() {
 fn test_process_create_target_is_directory() {
     let temp_dir = setup_temp_dir();
     temp_dir.child("target_dir").create_dir_all().unwrap();
-    let md = r#"
-## File: target_dir
-```
-This should fail
-```
-"#;
+    let md = "\n## File: target_dir\n```\nThis should fail\n```\n";
 
     // We expect process_actions to succeed overall, but record the failure in the summary
     let (summary, _) =
@@ -276,12 +229,7 @@ fn test_process_create_parent_is_file() {
         .child("parent_file")
         .write_str("I am a file")
         .unwrap();
-    let md = r#"
-## File: parent_file/nested_file.txt
-```
-This should fail
-```
-"#;
+    let md = "\n## File: parent_file/nested_file.txt\n```\nThis should fail\n```\n";
 
     let (summary, _) =
         run_processor(md, &temp_dir, false).expect("Processing should not fail overall");
@@ -299,12 +247,7 @@ This should fail
 fn test_process_path_not_safe_relative() {
     let temp_dir = setup_temp_dir();
     // This path attempts to go outside the temp directory
-    let md = r#"
-## File: ../outside_file.txt
-```
-This should not be created
-```
-"#;
+    let md = "\n## File: ../outside_file.txt\n```\nThis should not be created\n```\n";
 
     let (summary, _) =
         run_processor(md, &temp_dir, false).expect("Processing should not fail overall");
@@ -351,12 +294,7 @@ fn test_process_creates_base_directory() {
         "Target base dir should not exist yet"
     );
 
-    let md = r#"
-## File: inside.txt
-```
-content
-```
-"#;
+    let md = "\n## File: inside.txt\n```\ncontent\n```\n";
     let actions = markdown_processor::parse_markdown(md).unwrap();
     let summary = markdown_processor::process_actions(&target_base, actions, false) // Pass PathBuf here
         .expect("Processing failed");
@@ -386,12 +324,7 @@ fn test_process_errors_if_base_is_file() {
     let base_path_as_file = temp_dir.child("base_is_file.txt");
     base_path_as_file.write_str("I am a file").unwrap();
 
-    let md = r#"
-## File: should_fail.txt
-```
-content
-```
-"#;
+    let md = "\n## File: should_fail.txt\n```\ncontent\n```\n";
     let actions = markdown_processor::parse_markdown(md).unwrap();
     let result = markdown_processor::process_actions(base_path_as_file.path(), actions, false);
 

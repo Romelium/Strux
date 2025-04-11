@@ -25,16 +25,7 @@ fn assert_action(
 
 #[test]
 fn test_parse_bold_file_header() {
-    let md = r#"
-Some text before.
-
-**File: src/hello.txt**
-```
-Hello, World!
-```
-
-Some text after.
-"#;
+    let md = "\nSome text before.\n\n**File: src/hello.txt**\n```\nHello, World!\n```\n\nSome text after.\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1);
     assert_action(
@@ -47,13 +38,7 @@ Some text after.
 
 #[test]
 fn test_parse_hash_file_header() {
-    let md = r#"
-## File: config/settings.yaml
-```yaml
-setting: value
-another: 123
-```
-"#;
+    let md = "\n## File: config/settings.yaml\n```yaml\nsetting: value\nanother: 123\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1);
     assert_action(
@@ -66,13 +51,7 @@ another: 123
 
 #[test]
 fn test_parse_backtick_path_header() {
-    let md = r#"
-`my/script.sh`
-```bash
-#!/bin/bash
-echo "Running..."
-```
-"#;
+    let md = "\n`my/script.sh`\n```bash\n#!/bin/bash\necho \"Running...\"\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1);
     assert_action(
@@ -85,12 +64,7 @@ echo "Running..."
 
 #[test]
 fn test_parse_numbered_backtick_path_header() {
-    let md = r#"
-1. `path/to/data.json`
-```json
-{ "key": "value" }
-```
-"#;
+    let md = "\n1. `path/to/data.json`\n```json\n{ \"key\": \"value\" }\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1);
     assert_action(
@@ -103,12 +77,7 @@ fn test_parse_numbered_backtick_path_header() {
 
 #[test]
 fn test_parse_bold_backtick_path_header() {
-    let md = r#"
-**`relative/path.md`**
-```markdown
-# Content
-```
-"#;
+    let md = "\n**`relative/path.md`**\n```markdown\n# Content\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1);
     assert_action(
@@ -121,12 +90,7 @@ fn test_parse_bold_backtick_path_header() {
 
 #[test]
 fn test_parse_hash_backtick_path_header() {
-    let md = r#"
-## `another/file.ext`
-```
-Some raw content.
-```
-"#;
+    let md = "\n## `another/file.ext`\n```\nSome raw content.\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1);
     assert_action(
@@ -139,14 +103,7 @@ Some raw content.
 
 #[test]
 fn test_parse_internal_comment_file_header_excluded() {
-    let md = r#"
-```rust
-// File: src/lib.rs
-fn main() {
-    println!("Internal");
-}
-```
-"#;
+    let md = "\n```rust\n// File: src/lib.rs\nfn main() {\n    println!(\"Internal\");\n}\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1);
     assert_action(
@@ -161,14 +118,7 @@ fn main() {
 fn test_parse_internal_comment_path_header_included() {
     // Note: The parser looks for `//path`, so `# // path` won't match the *included* format.
     // Test the actual intended format:
-    let md_correct = r#"
-```python
-//myapp/main.py
-import sys
-
-print(sys.argv)
-```
-"#;
+    let md_correct = "\n```python\n//myapp/main.py\nimport sys\n\nprint(sys.argv)\n```\n";
     let actions = parse_markdown(md_correct).expect("Parsing failed");
     assert_eq!(actions.len(), 1);
     assert_action(
@@ -181,12 +131,7 @@ print(sys.argv)
 
 #[test]
 fn test_parse_internal_comment_backticks_path_excluded() {
-    let md = r#"
-```
-// File: `path with spaces/file.txt`
-Content here.
-```
-"#;
+    let md = "\n```\n// File: `path with spaces/file.txt`\nContent here.\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1);
     assert_action(
@@ -201,9 +146,7 @@ Content here.
 
 #[test]
 fn test_parse_bold_deleted_file_header() {
-    let md = r#"
-**Deleted File: old_config.cfg**
-"#;
+    let md = "\n**Deleted File: old_config.cfg**\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1);
     assert_action(actions.first(), ActionType::Delete, "old_config.cfg", None);
@@ -211,9 +154,7 @@ fn test_parse_bold_deleted_file_header() {
 
 #[test]
 fn test_parse_hash_deleted_file_header() {
-    let md = r#"
-## Deleted File: temp/file_to_remove.tmp
-"#;
+    let md = "\n## Deleted File: temp/file_to_remove.tmp\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1);
     assert_action(
@@ -227,12 +168,7 @@ fn test_parse_hash_deleted_file_header() {
 #[test]
 fn test_parse_hash_deleted_file_header_with_block() {
     // This is the special case where the path is *in* the block
-    let md = r#"
-## Deleted File:
-```
-path/inside/block.log
-```
-"#;
+    let md = "\n## Deleted File:\n```\npath/inside/block.log\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1);
     assert_action(
@@ -247,25 +183,7 @@ path/inside/block.log
 
 #[test]
 fn test_parse_multiple_actions_ordered() {
-    let md = r#"
-First some setup.
-
-## File: setup.sh
-```bash
-echo "Setting up..."
-```
-
-Then delete an old file.
-
-**Deleted File: old.log**
-
-Finally, create the main file.
-
-`src/main.rs`
-```rust
-fn main() {}
-```
-"#;
+    let md = "\nFirst some setup.\n\n## File: setup.sh\n```bash\necho \"Setting up...\"\n```\n\nThen delete an old file.\n\n**Deleted File: old.log**\n\nFinally, create the main file.\n\n`src/main.rs`\n```rust\nfn main() {}\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 3);
 
@@ -296,24 +214,14 @@ fn test_parse_empty_input() {
 
 #[test]
 fn test_parse_no_actions() {
-    let md = r#"
-Just some regular markdown text.
-Maybe a code block without a header:
-```
-let x = 5;
-```
-"#;
+    let md = "\nJust some regular markdown text.\nMaybe a code block without a header:\n```\nlet x = 5;\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert!(actions.is_empty());
 }
 
 #[test]
 fn test_parse_unclosed_fence() {
-    let md = r#"
-**File: incomplete.txt**
-```
-This block never closes.
-"#;
+    let md = "\n**File: incomplete.txt**\n```\nThis block never closes.\n";
     // Expect parsing to succeed but skip the action due to missing close fence
     // A warning should be logged (can't easily test stderr here)
     let actions = parse_markdown(md).expect("Parsing failed");
@@ -325,11 +233,7 @@ This block never closes.
 
 #[test]
 fn test_parse_header_without_block() {
-    let md = r#"
-**File: orphan.txt**
-
-Some other text.
-"#;
+    let md = "\n**File: orphan.txt**\n\nSome other text.\n";
     // Expect parsing to succeed but skip the action
     // A warning should be logged
     let actions = parse_markdown(md).expect("Parsing failed");
@@ -341,35 +245,21 @@ Some other text.
 
 #[test]
 fn test_parse_block_without_header() {
-    let md = r#"
-```
-No header here.
-```
-"#;
+    let md = "\n```\nNo header here.\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert!(actions.is_empty());
 }
 
 #[test]
 fn test_parse_invalid_action_word() {
-    let md = r#"
-**Created: file.txt**
-```
-content
-```
-"#;
+    let md = "\n**Created: file.txt**\n```\ncontent\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert!(actions.is_empty(), "Invalid action word should be ignored");
 }
 
 #[test]
 fn test_parse_header_missing_path() {
-    let md = r#"
-## File:
-```
-content
-```
-"#;
+    let md = "\n## File:\n```\ncontent\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert!(actions.is_empty(), "Header missing path should be ignored");
 }
@@ -377,23 +267,15 @@ content
 #[test]
 fn test_parse_internal_delete_header_ignored() {
     // Delete headers *inside* blocks are ignored by Pass 1 and not picked up by Pass 2
-    let md = r#"
-```
-**Deleted File: inside.txt**
-This content is associated with no action.
-```
-"#;
+    let md =
+        "\n```\n**Deleted File: inside.txt**\nThis content is associated with no action.\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert!(actions.is_empty());
 }
 
 #[test]
 fn test_parse_special_delete_header_empty_block() {
-    let md = r#"
-## Deleted File:
-```
-```
-"#;
+    let md = "\n## Deleted File:\n```\n```\n";
     // Should parse, but log a warning and produce no action
     let actions = parse_markdown(md).expect("Parsing failed");
     assert!(actions.is_empty());
@@ -401,13 +283,7 @@ fn test_parse_special_delete_header_empty_block() {
 
 #[test]
 fn test_parse_special_delete_header_multi_line_block() {
-    let md = r#"
-## Deleted File:
-```
-path/to/delete.txt
-some other ignored line
-```
-"#;
+    let md = "\n## Deleted File:\n```\npath/to/delete.txt\nsome other ignored line\n```\n";
     // Should parse, log a warning, but use the first line
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1);
@@ -421,14 +297,7 @@ some other ignored line
 
 #[test]
 fn test_parse_ignore_markdown_wrapper() {
-    let md = r#"
-```markdown
-**File: ignored.txt**
-```
-This should not be parsed.
-```
-```
-"#;
+    let md = "\n```markdown\n**File: ignored.txt**\n```\nThis should not be parsed.\n```\n```\n";
     // With the improved preprocess_markdown, this should now be correctly ignored.
     let actions = parse_markdown(md).expect("Parsing failed");
     assert!(
@@ -447,21 +316,14 @@ fn test_parse_only_markdown_wrapper() {
 #[test]
 fn test_parse_invalid_path_format_skipped() {
     // Pass 1 and Pass 2 check path format and skip if invalid
-    let md_create = r#"
-**File: bad//path.txt**
-```
-content
-```
-"#;
+    let md_create = "\n**File: bad//path.txt**\n```\ncontent\n```\n";
     let actions_create = parse_markdown(md_create).expect("Parsing failed");
     assert!(
         actions_create.is_empty(),
         "Create action with invalid path format should be skipped"
     );
 
-    let md_delete = r#"
-**Deleted File: another//bad/path**
-"#;
+    let md_delete = "\n**Deleted File: another//bad/path**\n";
     let actions_delete = parse_markdown(md_delete).expect("Parsing failed");
     assert!(
         actions_delete.is_empty(),
@@ -473,12 +335,7 @@ content
 
 #[test]
 fn test_parse_internal_header_looks_like_comment() {
-    let md = r#"
-```rust
-// ## File: commented_out.rs
-let x = 1;
-```
-"#;
+    let md = "\n```rust\n// ## File: commented_out.rs\nlet x = 1;\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert!(
         actions.is_empty(),
@@ -488,12 +345,7 @@ let x = 1;
 
 #[test]
 fn test_parse_internal_header_looks_like_string() {
-    let md = r#"
-```javascript
-const errorMsg = "**File: config.json** not found";
-console.log(errorMsg);
-```
-"#;
+    let md = "\n```javascript\nconst errorMsg = \"**File: config.json** not found\";\nconsole.log(errorMsg);\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert!(
         actions.is_empty(),
@@ -503,14 +355,9 @@ console.log(errorMsg);
 
 #[test]
 fn test_parse_internal_header_looks_like_string_backticks() {
-    let md = r#"
-```python
-query = f"""**File: query.sql**
-SELECT * FROM users;
-"""
-print(query)
-```
-"#;
+    // Note: Raw strings in Rust (r#""#) are useful here, but the request is to avoid them.
+    // We need to escape the internal triple quotes.
+    let md = "\n```python\nquery = f\"\"\"**File: query.sql**\nSELECT * FROM users;\n\"\"\"\nprint(query)\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert!(
         actions.is_empty(),
@@ -522,13 +369,7 @@ print(query)
 fn test_parse_standalone_header_inside_code_block_ignored_by_pass2() {
     // This header is *not* on the first line, so Pass 1 ignores it.
     // Pass 2 should also ignore it because it's inside a processed code block range.
-    let md = r#"
-```
-Some code here.
-**Deleted File: should_be_ignored.txt**
-More code.
-```
-"#;
+    let md = "\n```\nSome code here.\n**Deleted File: should_be_ignored.txt**\nMore code.\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert!(
         actions.is_empty(),
@@ -541,55 +382,12 @@ More code.
 #[test]
 fn test_parse_nested_code_blocks_simple() {
     // Renamed from test_parse_nested_code_blocks for clarity
-    let md = r#"
-Some introductory text.
-
-## File: src/nested_example.md
-```markdown
-This is the outer block.
-
-It contains inner blocks:
-
-```bash
-echo "Inner block 1"
-ls -l
-```
-
-Some text between inner blocks.
-
-```python
-# Inner block 2
-import sys
-print(sys.version)
-```
-
-Outer block continues...
-```
-
-More text after the main block.
-"#;
+    let md = "\nSome introductory text.\n\n## File: src/nested_example.md\n```markdown\nThis is the outer block.\n\nIt contains inner blocks:\n\n```bash\necho \"Inner block 1\"\nls -l\n```\n\nSome text between inner blocks.\n\n```python\n# Inner block 2\nimport sys\nprint(sys.version)\n```\n\nOuter block continues...\n```\n\nMore text after the main block.\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1);
 
-    let expected_content = r#"This is the outer block.
-
-It contains inner blocks:
-
-```bash
-echo "Inner block 1"
-ls -l
-```
-
-Some text between inner blocks.
-
-```python
-# Inner block 2
-import sys
-print(sys.version)
-```
-
-Outer block continues...
-"#; // Parser adds trailing newline
+    // Use a regular string literal for expected content as well
+    let expected_content = "This is the outer block.\n\nIt contains inner blocks:\n\n```bash\necho \"Inner block 1\"\nls -l\n```\n\nSome text between inner blocks.\n\n```python\n# Inner block 2\nimport sys\nprint(sys.version)\n```\n\nOuter block continues...\n"; // Parser adds trailing newline
 
     assert_action(
         actions.first(),
@@ -602,150 +400,14 @@ Outer block continues...
 #[test]
 fn test_parse_nested_blocks_from_readme_example() {
     // Test case based on the user's problematic input
-    let md = r#"
-#
-
-## Development
-
-### Pre-commit Hooks
-
-This project uses `pre-commit` to automatically run code quality checks and apply fixes (formatting, linting, tests) before each commit. This helps maintain code consistency and catch issues early.
-
-**Setup:**
-
-1. **Install pre-commit:**
-    If you don't have it, install it using pip:
-
-    ```bash
-    pip install pre-commit
-    # Or using brew on macOS:
-    # brew install pre-commit
-    ```
-
-## File: Readme
-```markdown
-#
-
-## Development
-
-### Pre-commit Hooks
-
-This project uses `pre-commit` to automatically run code quality checks and apply fixes (formatting, linting, tests) before each commit. This helps maintain code consistency and catch issues early.
-
-**Setup:**
-
-1. **Install pre-commit:**
-    If you don't have it, install it using pip:
-
-    ```bash
-    pip install pre-commit
-    # Or using brew on macOS:
-    # brew install pre-commit
-    ```
-
-2. **Install the git hooks:**
-    Run this command in the root directory of the repository:
-
-    ```bash
-    pre-commit install
-    ```
-
-**Usage:**
-
-Once installed, `pre-commit` will run automatically when you run `git commit`.
-
-* **Automatic Fixes:** Hooks for `cargo fmt`, `cargo fix`, and `cargo clippy --fix` will attempt to automatically fix formatting issues, compiler suggestions, and simple lints.
-* **Commit Flow:**
-    1. You run `git commit`.
-    2. `pre-commit` runs the hooks.
-    3. If any fixing hook modifies files (e.g., applies formatting), the commit will be **aborted**.
-    4. You will see messages indicating which files were changed. **Review the changes** and use `git add <modified files>` to stage them.
-    5. Run `git commit` **again**.
-    6. This time, the fixing hooks should find nothing to change. The checking hooks (`clippy`'s check part, `cargo test`) will then run.
-    7. If all checks pass, the commit succeeds.
-* **Manual Fixes:** If `cargo clippy` or `cargo test` fail after the automatic fixing stage, you will need to manually fix the reported errors, `git add` your changes, and commit again.
-
-**Manual Run:**
-
-You can run all checks and fixes manually on all files at any time:
-
-```bash
-pre-commit run --all-files
-```
-
-**Skipping Checks (Use with Caution):**
-
-If you need to bypass the pre-commit checks for a specific commit (e.g., work-in-progress), you can use the `--no-verify` flag:
-
-```bash
-git commit --no-verify -m "Your commit message"
-```
-
-```
-"#; // End of the markdown input string
+    let md = "\n#\n\n## Development\n\n### Pre-commit Hooks\n\nThis project uses `pre-commit` to automatically run code quality checks and apply fixes (formatting, linting, tests) before each commit. This helps maintain code consistency and catch issues early.\n\n**Setup:**\n\n1. **Install pre-commit:**\n    If you don't have it, install it using pip:\n\n    ```bash\n    pip install pre-commit\n    # Or using brew on macOS:\n    # brew install pre-commit\n    ```\n\n## File: Readme\n```markdown\n#\n\n## Development\n\n### Pre-commit Hooks\n\nThis project uses `pre-commit` to automatically run code quality checks and apply fixes (formatting, linting, tests) before each commit. This helps maintain code consistency and catch issues early.\n\n**Setup:**\n\n1. **Install pre-commit:**\n    If you don't have it, install it using pip:\n\n    ```bash\n    pip install pre-commit\n    # Or using brew on macOS:\n    # brew install pre-commit\n    ```\n\n2. **Install the git hooks:**\n    Run this command in the root directory of the repository:\n\n    ```bash\n    pre-commit install\n    ```\n\n**Usage:**\n\nOnce installed, `pre-commit` will run automatically when you run `git commit`.\n\n* **Automatic Fixes:** Hooks for `cargo fmt`, `cargo fix`, and `cargo clippy --fix` will attempt to automatically fix formatting issues, compiler suggestions, and simple lints.\n* **Commit Flow:**\n    1. You run `git commit`.\n    2. `pre-commit` runs the hooks.\n    3. If any fixing hook modifies files (e.g., applies formatting), the commit will be **aborted**.\n    4. You will see messages indicating which files were changed. **Review the changes** and use `git add <modified files>` to stage them.\n    5. Run `git commit` **again**.\n    6. This time, the fixing hooks should find nothing to change. The checking hooks (`clippy`'s check part, `cargo test`) will then run.\n    7. If all checks pass, the commit succeeds.\n* **Manual Fixes:** If `cargo clippy` or `cargo test` fail after the automatic fixing stage, you will need to manually fix the reported errors, `git add` your changes, and commit again.\n\n**Manual Run:**\n\nYou can run all checks and fixes manually on all files at any time:\n\n```bash\npre-commit run --all-files\n```\n\n**Skipping Checks (Use with Caution):**\n\nIf you need to bypass the pre-commit checks for a specific commit (e.g., work-in-progress), you can use the `--no-verify` flag:\n\n```bash\ngit commit --no-verify -m \"Your commit message\"\n```\n\n```\n"; // End of the markdown input string
 
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1, "Expected exactly one action");
 
     // IMPORTANT: Define the expected content precisely. It's everything INSIDE the outer ```markdown block.
     // The parser should add a trailing newline if the content doesn't end with one before the closing fence.
-    let expected_content = r#"#
-
-## Development
-
-### Pre-commit Hooks
-
-This project uses `pre-commit` to automatically run code quality checks and apply fixes (formatting, linting, tests) before each commit. This helps maintain code consistency and catch issues early.
-
-**Setup:**
-
-1. **Install pre-commit:**
-    If you don't have it, install it using pip:
-
-    ```bash
-    pip install pre-commit
-    # Or using brew on macOS:
-    # brew install pre-commit
-    ```
-
-2. **Install the git hooks:**
-    Run this command in the root directory of the repository:
-
-    ```bash
-    pre-commit install
-    ```
-
-**Usage:**
-
-Once installed, `pre-commit` will run automatically when you run `git commit`.
-
-* **Automatic Fixes:** Hooks for `cargo fmt`, `cargo fix`, and `cargo clippy --fix` will attempt to automatically fix formatting issues, compiler suggestions, and simple lints.
-* **Commit Flow:**
-    1. You run `git commit`.
-    2. `pre-commit` runs the hooks.
-    3. If any fixing hook modifies files (e.g., applies formatting), the commit will be **aborted**.
-    4. You will see messages indicating which files were changed. **Review the changes** and use `git add <modified files>` to stage them.
-    5. Run `git commit` **again**.
-    6. This time, the fixing hooks should find nothing to change. The checking hooks (`clippy`'s check part, `cargo test`) will then run.
-    7. If all checks pass, the commit succeeds.
-* **Manual Fixes:** If `cargo clippy` or `cargo test` fail after the automatic fixing stage, you will need to manually fix the reported errors, `git add` your changes, and commit again.
-
-**Manual Run:**
-
-You can run all checks and fixes manually on all files at any time:
-
-```bash
-pre-commit run --all-files
-```
-
-**Skipping Checks (Use with Caution):**
-
-If you need to bypass the pre-commit checks for a specific commit (e.g., work-in-progress), you can use the `--no-verify` flag:
-
-```bash
-git commit --no-verify -m "Your commit message"
-```
-"#; // Note: Parser adds trailing \n
+    let expected_content = "#\n\n## Development\n\n### Pre-commit Hooks\n\nThis project uses `pre-commit` to automatically run code quality checks and apply fixes (formatting, linting, tests) before each commit. This helps maintain code consistency and catch issues early.\n\n**Setup:**\n\n1. **Install pre-commit:**\n    If you don't have it, install it using pip:\n\n    ```bash\n    pip install pre-commit\n    # Or using brew on macOS:\n    # brew install pre-commit\n    ```\n\n2. **Install the git hooks:**\n    Run this command in the root directory of the repository:\n\n    ```bash\n    pre-commit install\n    ```\n\n**Usage:**\n\nOnce installed, `pre-commit` will run automatically when you run `git commit`.\n\n* **Automatic Fixes:** Hooks for `cargo fmt`, `cargo fix`, and `cargo clippy --fix` will attempt to automatically fix formatting issues, compiler suggestions, and simple lints.\n* **Commit Flow:**\n    1. You run `git commit`.\n    2. `pre-commit` runs the hooks.\n    3. If any fixing hook modifies files (e.g., applies formatting), the commit will be **aborted**.\n    4. You will see messages indicating which files were changed. **Review the changes** and use `git add <modified files>` to stage them.\n    5. Run `git commit` **again**.\n    6. This time, the fixing hooks should find nothing to change. The checking hooks (`clippy`'s check part, `cargo test`) will then run.\n    7. If all checks pass, the commit succeeds.\n* **Manual Fixes:** If `cargo clippy` or `cargo test` fail after the automatic fixing stage, you will need to manually fix the reported errors, `git add` your changes, and commit again.\n\n**Manual Run:**\n\nYou can run all checks and fixes manually on all files at any time:\n\n```bash\npre-commit run --all-files\n```\n\n**Skipping Checks (Use with Caution):**\n\nIf you need to bypass the pre-commit checks for a specific commit (e.g., work-in-progress), you can use the `--no-verify` flag:\n\n```bash\ngit commit --no-verify -m \"Your commit message\"\n```\n"; // Note: Parser adds trailing \n
 
     assert_action(
         actions.first(),
@@ -759,11 +421,7 @@ git commit --no-verify -m "Your commit message"
 
 #[test]
 fn test_parse_empty_content() {
-    let md = r#"
-## File: empty.txt
-```
-```
-"#;
+    let md = "\n## File: empty.txt\n```\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1);
     // Empty block -> empty content
@@ -773,12 +431,7 @@ fn test_parse_empty_content() {
 #[test]
 fn test_parse_content_no_trailing_newline() {
     // The parser adds a trailing newline if missing
-    let md = r#"
-**File: data.csv**
-```
-col1,col2
-val1,val2
-```"#; // Note: No newline after ```
+    let md = "\n**File: data.csv**\n```\ncol1,col2\nval1,val2\n```"; // Note: No newline after ```
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1);
     assert_action(

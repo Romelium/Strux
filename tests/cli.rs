@@ -41,14 +41,7 @@ fn test_cli_basic_create() {
     let temp_dir = setup_temp_dir();
     let md_path = temp_dir.child("input.md");
     md_path
-        .write_str(
-            r#"
-## File: output/hello.txt
-```
-Hello from CLI!
-```
-"#,
-        )
+        .write_str("\n## File: output/hello.txt\n```\nHello from CLI!\n```\n")
         .unwrap();
     let output_dir = temp_dir.child("generated"); // Does not exist initially
 
@@ -74,11 +67,7 @@ fn test_cli_basic_delete() {
     let temp_dir = setup_temp_dir();
     let md_path = temp_dir.child("input.md");
     md_path
-        .write_str(
-            r#"
-**Deleted File: old_stuff.log**
-"#,
-        )
+        .write_str("\n**Deleted File: old_stuff.log**\n")
         .unwrap();
     let output_dir = temp_dir.child("generated");
     output_dir.create_dir_all().unwrap(); // Pre-create for delete test
@@ -104,14 +93,7 @@ fn test_cli_overwrite_force() {
     let temp_dir = setup_temp_dir();
     let md_path = temp_dir.child("input.md");
     md_path
-        .write_str(
-            r#"
-## File: config.ini
-```
-value = new
-```
-"#,
-        )
+        .write_str("\n## File: config.ini\n```\nvalue = new\n```\n")
         .unwrap();
     let output_dir = temp_dir.child("generated");
     output_dir.create_dir_all().unwrap(); // Pre-create for overwrite test
@@ -138,14 +120,7 @@ fn test_cli_skip_existing_no_force() {
     let temp_dir = setup_temp_dir();
     let md_path = temp_dir.child("input.md");
     md_path
-        .write_str(
-            r#"
-## File: config.ini
-```
-value = new
-```
-"#,
-        )
+        .write_str("\n## File: config.ini\n```\nvalue = new\n```\n")
         .unwrap();
     let output_dir = temp_dir.child("generated");
     output_dir.create_dir_all().unwrap(); // Pre-create for skip test
@@ -200,14 +175,7 @@ fn test_cli_unsafe_path() {
     let temp_dir = setup_temp_dir();
     let md_path = temp_dir.child("input.md");
     md_path
-        .write_str(
-            r#"
-## File: ../unsafe_file.txt
-```
-Should not be created
-```
-"#,
-        )
+        .write_str("\n## File: ../unsafe_file.txt\n```\nShould not be created\n```\n")
         .unwrap();
     let output_dir = temp_dir.child("generated"); // Does not exist initially
 
