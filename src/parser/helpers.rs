@@ -1,10 +1,9 @@
 //! Helper functions for the markdown parser.
 
-use crate::core_types::{Action, ActionType};
 // Removed unused import: once_cell::sync::Lazy;
 // Removed unused import: regex::Regex;
 // Removed unused ParseError
-use std::collections::HashMap; // Keep HashMap for check_action_conflicts
+// Removed unused HashMap
 
 // --- Moved to header_utils.rs ---
 // extract_action_path_from_captures
@@ -53,22 +52,8 @@ pub(crate) fn preprocess_markdown(markdown_content: &str) -> (&str, usize) {
     (markdown_content, 0)
 }
 
-/// Checks the final sorted list of actions for potential conflicts on the same path.
-pub(crate) fn check_action_conflicts(final_actions: &[Action]) {
-    let mut paths_seen: HashMap<String, (ActionType, usize)> = HashMap::new();
-    println!("Checking action sequence...");
-    for (i, action) in final_actions.iter().enumerate() {
-        let path = &action.path;
-        let current_act_type = action.action_type.clone();
-        if let Some((prev_act_type, prev_idx)) = paths_seen.get(path) {
-            println!(
-                "  Info: Action '{:?}' for path '{}' (item {}) follows action '{:?}' (item {}). Ensure sequence is intended.",
-                current_act_type, path, i + 1, prev_act_type, prev_idx + 1
-            );
-        }
-        paths_seen.insert(path.clone(), (current_act_type, i));
-    }
-}
+// --- Moved to action_checker.rs ---
+// check_action_conflicts
 
 /// Helper to add a trailing newline if needed.
 pub(crate) fn ensure_trailing_newline(content: &mut String) {

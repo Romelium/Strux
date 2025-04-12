@@ -2,11 +2,12 @@
 
 use crate::core_types::{Action, Summary};
 use crate::errors::AppError;
-use std::fs;
+// Removed unused fs import
 use std::path::Path;
 
 // Declare processor submodules
 mod action_handler;
+mod base_setup; // ADDED
 mod create;
 mod delete;
 mod safety;
@@ -26,7 +27,7 @@ pub fn process_actions(
         "Ensuring target base directory exists: {}",
         base_dir.display()
     );
-    setup_base_directory(base_dir)?; // Pass the original path
+    base_setup::setup_base_directory(base_dir)?; // Use new module
 
     // --- Resolve base directory path AFTER ensuring it exists ---
     // This is needed for safety checks.
@@ -68,29 +69,8 @@ pub fn process_actions(
     Ok(summary)
 }
 
-/// Ensures the base directory exists and is a directory. Accepts the user-provided path.
-fn setup_base_directory(base_dir_to_setup: &Path) -> Result<(), AppError> {
-    if !base_dir_to_setup.exists() {
-        fs::create_dir_all(base_dir_to_setup).map_err(|e| {
-            eprintln!(
-                "Error: Could not create base directory '{}': {}",
-                base_dir_to_setup.display(),
-                e
-            );
-            AppError::Io(e)
-        })?;
-        println!("Created base directory: {}", base_dir_to_setup.display());
-    } else if !base_dir_to_setup.is_dir() {
-        eprintln!(
-            "Error: Specified base path '{}' exists but is not a directory.",
-            base_dir_to_setup.display()
-        );
-        return Err(AppError::Argument(
-            "Base path is not a directory".to_string(),
-        ));
-    }
-    Ok(())
-}
+// --- Moved to base_setup.rs ---
+// setup_base_directory
 
 // --- Moved to action_handler.rs ---
 // process_single_action

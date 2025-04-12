@@ -7,6 +7,7 @@ use std::collections::HashSet;
 
 // Declare submodules for Pass 1
 mod action_adder; // NEW MODULE
+mod action_determiner; // ADDED
 mod block_processor;
 mod external_delete_special;
 mod external_header;

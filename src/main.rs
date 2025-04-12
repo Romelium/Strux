@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 // Use the library's public interface
+// Updated import for print_summary
 use markdown_processor::{parse_markdown, print_summary, process_actions, AppError, Summary};
 
 // --- Argument Parsing ---
@@ -67,7 +68,7 @@ fn run() -> Result<Summary, AppError> {
     // Resolve again for printing; process_actions resolves internally for safety.
     // Use original path if canonicalize fails (e.g., dir deleted during processing).
     let resolved_output_dir_display = cli.output_dir.canonicalize().unwrap_or(cli.output_dir);
-    print_summary(&summary, &resolved_output_dir_display); // Use lib function
+    print_summary(&summary, &resolved_output_dir_display); // Use lib function (import updated)
 
     Ok(summary)
 }

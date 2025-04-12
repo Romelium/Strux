@@ -5,6 +5,7 @@ use crate::errors::ParseError;
 use std::collections::HashSet; // Removed unused HashMap
 
 // Declare submodules within the parser module
+mod action_checker; // ADDED
 mod header_utils;
 mod helpers;
 mod internal_comment;
@@ -79,7 +80,7 @@ pub fn parse_markdown(markdown_content: &str) -> Result<Vec<Action>, ParseError>
         .collect();
 
     // --- Final check for conflicting actions on the same path ---
-    helpers::check_action_conflicts(&final_actions);
+    action_checker::check_action_conflicts(&final_actions); // Use new module
 
     println!("\nParsing complete. Found {} actions.", final_actions.len());
     Ok(final_actions)
