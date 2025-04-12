@@ -23,6 +23,9 @@ mod multi_create;
 mod multi_delete;
 #[path = "processor/overwrite_skip.rs"]
 mod overwrite_skip;
+// REMOVED: safety tests are now unit tests
+// #[path = "processor/safety.rs"]
+// mod safety;
 
 // Declare the top-level common module (tests/test_common.rs)
 // This makes helpers like setup_temp_dir available via crate::test_common::*

@@ -25,6 +25,7 @@ fn run() -> Result<Summary, AppError> {
     println!("\nParsing markdown for file actions...");
     let parsed_actions = parse_markdown(&markdown_content)?; // Use lib function
 
+    // Check if actions were found and print appropriate message
     if parsed_actions.is_empty() {
         // Basic check if content might have had actionable items
         if markdown_content.contains("```")
@@ -32,27 +33,29 @@ fn run() -> Result<Summary, AppError> {
             || markdown_content.contains("**")
             || markdown_content.contains("##")
         {
-            eprintln!("\nWarning: No valid actions extracted. Check formatting.");
+            // CHANGE: Use println! instead of eprintln! for this warning
+            println!("\nWarning: No valid actions extracted. Check formatting.");
         } else {
             println!("\nInfo: No actionable content found.");
         }
         println!("\nNo actions to process.");
-        return Ok(Summary::default()); // Return empty summary
+        // REMOVE the early return: continue processing to print the zero summary
+        // return Ok(Summary::default()); // Return empty summary
+    } else {
+        println!(
+            "\nFound {} actions to process (sorted by document order).",
+            parsed_actions.len()
+        );
     }
 
-    println!(
-        "\nFound {} actions to process (sorted by document order).",
-        parsed_actions.len()
-    );
-
-    // Process actions using the library function
+    // Process actions using the library function (will do nothing if actions is empty)
     let summary = process_actions(&cli.output_dir, parsed_actions, cli.force)?;
 
     // Print summary needs the *resolved* base path for display
     // Resolve again for printing; process_actions resolves internally for safety.
     // Use original path if canonicalize fails (e.g., dir deleted during processing).
     let resolved_output_dir_display = cli.output_dir.canonicalize().unwrap_or(cli.output_dir);
-    // Call the imported print_summary function
+    // Call the imported print_summary function - THIS WILL NOW ALWAYS RUN
     print_summary(&summary, &resolved_output_dir_display);
 
     Ok(summary)

@@ -55,7 +55,8 @@ pub(crate) fn ensure_path_safe(base_dir: &Path, target_path: &Path) -> Result<()
         }
         Err(ref e) if e.kind() == ErrorKind::NotFound => {
             // Target doesn't exist: Check safety based on its intended parent.
-            check_nonexistent_target_safety(target_path, &canonical_base)
+            // Pass the original target_path for error reporting context if needed.
+            check_nonexistent_path_safety(target_path, &canonical_base)
         }
         // *** CATCH NotADirectory during metadata check (parent is file) ***
         Err(ref e) if e.kind() == ErrorKind::NotADirectory => {
@@ -71,68 +72,101 @@ pub(crate) fn ensure_path_safe(base_dir: &Path, target_path: &Path) -> Result<()
     }
 }
 
-/// Checks safety for a target path that does not yet exist by examining its parent.
-fn check_nonexistent_target_safety(
-    target_path: &Path,
+/// Recursively checks safety for a path that does not necessarily exist
+/// by examining its ancestors relative to the canonical base.
+fn check_nonexistent_path_safety(
+    path_to_check: &Path,
     canonical_base: &Path,
 ) -> Result<(), ProcessError> {
-    if let Some(parent) = target_path.parent() {
-        // Canonicalize the parent directory.
+    // Base case: If the path_to_check *is* the base directory, it's safe by definition.
+    // We need to compare canonical paths if possible.
+    match path_to_check.canonicalize() {
+        Ok(canonical_check) if canonical_check == *canonical_base => return Ok(()),
+        Ok(_) => {} // Path exists and is not the base, continue to parent check
+        Err(ref e) if e.kind() == ErrorKind::NotFound => {} // Path doesn't exist, continue
+        Err(ref e) if e.kind() == ErrorKind::NotADirectory => {
+            // An intermediate component is a file.
+            return Err(ProcessError::ParentIsNotDirectory {
+                path: path_to_check.to_path_buf(), // Report the path we were checking
+                parent_path: path_to_check
+                    .parent()
+                    .unwrap_or(path_to_check)
+                    .to_path_buf(),
+            });
+        }
+        Err(e) => {
+            // Other canonicalization error (permissions?)
+            return Err(ProcessError::PathResolution {
+                path: path_to_check.to_path_buf(),
+                details: format!("Failed to canonicalize path during safety check: {}", e),
+            });
+        }
+    }
+
+    // Get the parent of the path we are currently checking.
+    if let Some(parent) = path_to_check.parent() {
+        // If the parent *is* the base directory, the path is safe (it's directly inside).
+        // Compare canonical paths if possible for robustness.
         match parent.canonicalize() {
             Ok(canonical_parent) => {
-                // Check if the existing parent is within the base directory.
-                if canonical_parent.starts_with(canonical_base) {
-                    // Parent is safe, so creating the target inside it is considered safe.
-                    Ok(())
-                } else {
-                    // Parent exists but is outside the base directory. Unsafe.
-                    Err(ProcessError::PathNotSafe {
-                        resolved_path: canonical_parent, // Report the parent path
+                if canonical_parent == *canonical_base {
+                    return Ok(());
+                }
+                // Parent exists and is not the base. Check if it's *within* the base.
+                if !canonical_parent.starts_with(canonical_base) {
+                    return Err(ProcessError::PathNotSafe {
+                        resolved_path: canonical_parent, // Report the unsafe parent
                         base_path: canonical_base.to_path_buf(),
-                    })
+                    });
+                }
+                // Parent exists and is within the base. Now, ensure it's actually a directory.
+                match fs::metadata(&canonical_parent) {
+                    Ok(meta) if meta.is_dir() => {
+                        // Parent exists, is safe, and is a directory. Path is safe.
+                        Ok(())
+                    }
+                    Ok(_) => {
+                        // Parent exists, is safe, but is NOT a directory.
+                        Err(ProcessError::ParentIsNotDirectory {
+                            path: path_to_check.to_path_buf(), // The path we were trying to create/check
+                            parent_path: parent.to_path_buf(), // The parent that is not a directory
+                        })
+                    }
+                    Err(e) => {
+                        // Error getting metadata for the existing canonical parent (permissions?)
+                        Err(ProcessError::Io { source: e })
+                    }
                 }
             }
-            // *** CATCH NotADirectory during PARENT canonicalization ***
-            Err(ref parent_err) if parent_err.kind() == ErrorKind::NotADirectory => {
+            Err(ref e) if e.kind() == ErrorKind::NotFound => {
+                // Parent does not exist. Recursively check the parent's safety.
+                check_nonexistent_path_safety(parent, canonical_base)
+            }
+            Err(ref e) if e.kind() == ErrorKind::NotADirectory => {
+                // An intermediate component in the *parent's* path is a file.
                 Err(ProcessError::ParentIsNotDirectory {
-                    path: target_path.to_path_buf(), // The target we were trying to create
-                    parent_path: parent.to_path_buf(), // The parent that is not a directory
+                    path: path_to_check.to_path_buf(), // The original path being checked
+                    parent_path: parent.to_path_buf(), // The parent path that failed
                 })
             }
-            Err(ref parent_err) if parent_err.kind() == ErrorKind::NotFound => {
-                // Parent directory itself doesn't exist. This implies it needs to be
-                // created. Assume `create_dir_all` will handle safety within the base.
-                // We could recursively check the parent's parent, but relying on
-                // the initial base check and `create_dir_all` is often sufficient.
-                // If the non-existent parent's path *string* looks unsafe (e.g., "../.."),
-                // it might be caught earlier, but canonicalization handles this better.
-                // For simplicity here, assume okay if parent *would* be created inside base.
-                // A stricter check could trace the path components upwards.
-                // Let's check if the parent *path itself* starts with base logically.
-                if parent.starts_with(canonical_base) {
-                    Ok(())
-                } else {
-                    // If even the logical parent path isn't inside base, it's unsafe.
-                    // This check is less robust than canonicalization but handles simple cases.
-                    Err(ProcessError::PathNotSafe {
-                        resolved_path: parent.to_path_buf(), // Report logical parent
-                        base_path: canonical_base.to_path_buf(),
-                    })
-                }
-            }
-            Err(parent_err) => {
-                // Other error canonicalizing the parent (e.g., permissions).
+            Err(e) => {
+                // Other error canonicalizing the parent (permissions?)
                 Err(ProcessError::PathResolution {
                     path: parent.to_path_buf(),
-                    details: format!("Failed to canonicalize parent directory: {}", parent_err),
+                    details: format!("Failed to canonicalize parent directory: {}", e),
                 })
             }
         }
     } else {
-        // Cannot get parent (e.g., root path "/" or similar). Unlikely for relative paths.
+        // Cannot get parent (e.g., root path "/" or similar).
+        // If we reached here, it means the path wasn't the base itself.
+        // This implies an attempt to access something outside the base, potentially the root.
         Err(ProcessError::PathResolution {
-            path: target_path.to_path_buf(),
-            details: "Cannot determine parent directory for safety check.".to_string(),
+            path: path_to_check.to_path_buf(),
+            details: "Cannot determine parent directory for safety check (potentially root path)."
+                .to_string(),
         })
     }
 }
+
+// --- REMOVED old check_nonexistent_target_safety function ---

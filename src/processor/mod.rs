@@ -13,6 +13,12 @@ mod delete;
 mod safety;
 mod summary_updater;
 
+// Declare the unit test module for safety
+#[cfg(test)]
+mod safety_tests;
+#[cfg(test)] // Also declare the existing summary_updater_tests module here
+mod summary_updater_tests;
+
 /// Processes a list of actions against the filesystem relative to a base directory.
 pub fn process_actions(
     base_dir: &Path,

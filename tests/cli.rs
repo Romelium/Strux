@@ -11,6 +11,8 @@ mod basic;
 mod create;
 #[path = "cli/delete.rs"]
 mod delete;
+#[path = "cli/empty_input.rs"]
+mod empty_input;
 #[path = "cli/errors.rs"]
 mod errors;
 #[path = "cli/overwrite_skip.rs"]

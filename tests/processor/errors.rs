@@ -79,3 +79,24 @@ fn test_process_invalid_path_format_in_action() {
         .assert(predicate::path::missing());
     assert_summary(&summary, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0); // failed_unsafe = 1
 }
+
+#[test]
+fn test_process_empty_path_string() {
+    let temp_dir = setup_temp_dir();
+    // Manually create an action with an empty path string.
+    let actions = vec![strux::Action {
+        action_type: strux::ActionType::Create,
+        path: "".to_string(),
+        content: Some("content".to_string()),
+        original_pos: 0,
+    }];
+
+    let summary = strux::process_actions(temp_dir.path(), actions, false)
+        .expect("Processing should not fail overall");
+
+    // REMOVED: Flawed assertion - temp_dir.path().join("") == temp_dir.path()
+    // assert!(!temp_dir.path().join("").exists());
+
+    // The main check is that the summary correctly recorded the failure.
+    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0); // failed_unsafe = 1 due to invalid format
+}
