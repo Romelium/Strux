@@ -1,0 +1,47 @@
+name: Rust CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build_and_test:
+    name: Build and Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (stable)
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          cache: 'cargo'
+          components: clippy, rustfmt
+
+      - name: Check Formatting (cargo fmt)
+        run: cargo fmt --all -- --check
+
+      - name: Linting (cargo clippy)
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Run Tests (cargo test)
+        run: cargo test --all-targets --verbose
+
+      - name: Build (Debug)
+        run: cargo build --verbose
+
+      - name: Build (Release)
+        run: cargo build --release --verbose

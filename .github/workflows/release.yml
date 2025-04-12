@@ -1,0 +1,132 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*' # Trigger on tags like v0.1.0, v1.2.3
+
+permissions:
+  contents: write # Needed to create releases and upload assets
+
+env:
+  CARGO_TERM_COLOR: always
+  BINARY_NAME: strux
+  STAGING_DIR: staging
+
+jobs:
+  build-release:
+    name: Build Release Binaries (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          # Linux (GNU) - tar.gz archive
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            bin_suffix: ""
+            archive_format: tar.gz
+            archive_command: |
+              tar czf ${{ env.ARCHIVE_NAME }} -C ${{ env.STAGING_DIR }} .
+            archive_shell: bash
+
+          # macOS (Intel x86_64) - tar.gz archive
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            bin_suffix: ""
+            archive_format: tar.gz
+            archive_command: |
+              tar czf ${{ env.ARCHIVE_NAME }} -C ${{ env.STAGING_DIR }} .
+            archive_shell: bash
+
+          # macOS (Apple Silicon arm64) - tar.gz archive
+          - os: macos-14
+            target: aarch64-apple-darwin
+            bin_suffix: ""
+            archive_format: tar.gz
+            archive_command: |
+              tar czf ${{ env.ARCHIVE_NAME }} -C ${{ env.STAGING_DIR }} .
+            archive_shell: bash
+
+          # Windows (MSVC x86_64) - zip archive
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bin_suffix: ".exe"
+            archive_format: zip
+            archive_command: |
+              Compress-Archive -Path ${{ env.STAGING_DIR }}\* -DestinationPath ${{ env.ARCHIVE_NAME }}
+            archive_shell: pwsh
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (stable)
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          cache: 'cargo'
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }} --verbose
+
+      - name: Prepare archive name
+        run: echo "ARCHIVE_NAME=${{ env.BINARY_NAME }}-${{ github.ref_name }}-${{ matrix.target }}.${{ matrix.archive_format }}" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Create staging directory
+        run: mkdir ${{ env.STAGING_DIR }}
+        shell: bash
+
+      - name: Copy binary to staging directory
+        run: |
+          set -e
+          cp target/${{ matrix.target }}/release/${{ env.BINARY_NAME }}${{ matrix.bin_suffix }} ${{ env.STAGING_DIR }}/
+        shell: bash
+
+      - name: Copy documentation and license files to staging directory
+        # Copy only LICENSE and README.md, not COMMIT.md
+        run: |
+          set -e
+          cp LICENSE ${{ env.STAGING_DIR }}/
+          cp README.md ${{ env.STAGING_DIR }}/
+        shell: bash
+
+      - name: List staging directory contents (for debugging)
+        run: ls -R ${{ env.STAGING_DIR }}
+        shell: bash
+
+      - name: Package release artifacts from staging directory
+        run: ${{ matrix.archive_command }}
+        shell: ${{ matrix.archive_shell }}
+
+      - name: Upload release asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: ${{ env.ARCHIVE_NAME }}
+
+  create-release:
+    name: Create GitHub Release
+    needs: build-release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: release-assets
+
+      - name: List downloaded files (for debugging)
+        run: ls -R release-assets
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          generate_release_notes: true
+          files: release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
