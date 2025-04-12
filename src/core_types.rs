@@ -50,7 +50,3 @@ pub enum DeleteStatus {
     SkippedIsDir,
     SkippedOtherType,
 }
-
-// --- Summary Printing ---
-// Moved to src/summary_printer.rs
-// pub fn print_summary(summary: &Summary, resolved_base: &Path) { ... }

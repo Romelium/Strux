@@ -1,11 +1,11 @@
 use clap::Parser;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf}; // Added Path import
 use std::process::ExitCode;
 
 // Use the library's public interface
-// Updated import for print_summary
-use markdown_processor::{parse_markdown, print_summary, process_actions, AppError, Summary};
+// REMOVED: print_summary import from library
+use markdown_processor::{parse_markdown, process_actions, AppError, Summary};
 
 // --- Argument Parsing ---
 
@@ -25,6 +25,64 @@ struct Cli {
     /// Overwrite existing files for 'File' actions.
     #[arg(short, long)]
     force: bool,
+}
+
+// --- Summary Printing Logic (Moved from library) ---
+
+/// Prints the final processing summary to the console.
+/// This function now lives within the binary crate.
+fn print_summary(summary: &Summary, resolved_base: &Path) {
+    println!("{}", "-".repeat(40));
+    println!("Processing Summary:");
+    println!(
+        "  Base Directory:                     {}",
+        resolved_base.display()
+    );
+    println!("  Files created:                      {}", summary.created);
+    println!(
+        "  Files overwritten (--force):        {}",
+        summary.overwritten
+    );
+    println!("  Files deleted:                      {}", summary.deleted);
+    println!("{}", "-".repeat(14) + " Skipped " + &"-".repeat(19));
+    println!(
+        "  Skipped (create, exists):           {}",
+        summary.skipped_exists
+    );
+    println!(
+        "  Skipped (delete, not found):        {}",
+        summary.skipped_not_found
+    );
+    println!(
+        "  Skipped (delete, is dir):           {}",
+        summary.skipped_isdir_delete
+    );
+    println!(
+        "  Skipped (delete, other type):       {}",
+        summary.skipped_other_type
+    );
+    println!("{}", "-".repeat(12) + " Failed/Errors " + &"-".repeat(13));
+    println!(
+        "  Failed (unsafe/invalid path):       {}",
+        summary.failed_unsafe
+    );
+    println!(
+        "  Failed (create, target is dir):     {}",
+        summary.failed_isdir_create
+    );
+    println!(
+        "  Failed (create, parent is file):    {}",
+        summary.failed_parent_isdir
+    );
+    println!(
+        "  Failed (I/O or Path error):         {}",
+        summary.failed_io
+    );
+    println!(
+        "  Failed (other unexpected errors):   {}",
+        summary.error_other
+    );
+    println!("{}", "-".repeat(40));
 }
 
 // --- Main Execution Logic ---
@@ -68,7 +126,8 @@ fn run() -> Result<Summary, AppError> {
     // Resolve again for printing; process_actions resolves internally for safety.
     // Use original path if canonicalize fails (e.g., dir deleted during processing).
     let resolved_output_dir_display = cli.output_dir.canonicalize().unwrap_or(cli.output_dir);
-    print_summary(&summary, &resolved_output_dir_display); // Use lib function (import updated)
+    // Call the local print_summary function defined above
+    print_summary(&summary, &resolved_output_dir_display);
 
     Ok(summary)
 }
