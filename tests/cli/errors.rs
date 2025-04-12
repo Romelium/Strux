@@ -13,11 +13,15 @@ fn test_cli_missing_input_file() {
     let mut cmd = get_cmd();
     cmd.arg(temp_dir.path().join("nonexistent.md")); // Path that doesn't exist
 
-    cmd.assert()
-        .failure()
-        .stderr(predicate::str::contains("Error: I/O error:"))
-        // Adjust assertion for Windows error message fragment
-        .stderr(predicate::str::contains("cannot find the file specified"));
+    // Combine predicates to handle both POSIX and Windows error messages
+    let error_message_predicate = predicate::str::contains("Error: I/O error:") // Common part
+        .and(
+            // Must contain common part AND...
+            predicate::str::contains("No such file or directory") // ...either the POSIX message
+                .or(predicate::str::contains("cannot find the file specified")), // ...or the Windows message
+        );
+
+    cmd.assert().failure().stderr(error_message_predicate); // Use the combined predicate
 }
 
 #[test]
