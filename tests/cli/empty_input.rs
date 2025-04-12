@@ -15,6 +15,7 @@ fn test_cli_empty_markdown_file() {
 
     let mut cmd = get_cmd();
     cmd.arg(md_path.path());
+    cmd.current_dir(temp_dir.path()); // <-- ADDED: Set CWD for the command
 
     cmd.assert()
         .success()
@@ -46,6 +47,7 @@ fn test_cli_markdown_file_no_actions() {
 
     let mut cmd = get_cmd();
     cmd.arg(md_path.path());
+    cmd.current_dir(temp_dir.path()); // <-- ADDED: Set CWD for the command
 
     cmd.assert()
         .success()
