@@ -17,6 +17,8 @@ mod delete;
 mod edge_cases;
 #[path = "parser/heuristics.rs"]
 mod heuristics;
+#[path = "parser/invalid_paths.rs"] // ADDED
+mod invalid_paths;
 #[path = "parser/nested_content.rs"]
 mod nested_content;
 #[path = "parser/ordering.rs"]

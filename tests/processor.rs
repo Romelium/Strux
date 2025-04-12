@@ -15,8 +15,12 @@ mod delete;
 mod errors;
 #[path = "processor/interactions.rs"]
 mod interactions;
-#[path = "processor/multi_file.rs"]
-mod multi_file;
+#[path = "processor/mixed_actions.rs"]
+mod mixed_actions;
+#[path = "processor/multi_create.rs"]
+mod multi_create;
+#[path = "processor/multi_delete.rs"]
+mod multi_delete;
 #[path = "processor/overwrite_skip.rs"]
 mod overwrite_skip;
 

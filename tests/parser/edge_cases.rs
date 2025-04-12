@@ -83,19 +83,4 @@ fn test_parse_only_markdown_wrapper() {
     assert!(actions.is_empty());
 }
 
-#[test]
-fn test_parse_invalid_path_format_skipped() {
-    let md_create = "\n**File: bad//path.txt**\n```\ncontent\n```\n";
-    let actions_create = parse_markdown(md_create).expect("Parsing failed");
-    assert!(
-        actions_create.is_empty(),
-        "Create action with invalid path format should be skipped"
-    );
-
-    let md_delete = "\n**Deleted File: another//bad/path**\n";
-    let actions_delete = parse_markdown(md_delete).expect("Parsing failed");
-    assert!(
-        actions_delete.is_empty(),
-        "Delete action with invalid path format should be skipped"
-    );
-}
+// test_parse_invalid_path_format_skipped MOVED to invalid_paths.rs
