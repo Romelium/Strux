@@ -10,6 +10,10 @@ use crate::parser::regex::HEADER_REGEX; // Need the regex to generate captures
 
 fn get_captures(text: &str) -> Option<regex::Captures<'_>> {
     let caps = HEADER_REGEX.captures(text);
+    // DEBUG: Print if capture fails for a specific input
+    // if caps.is_none() {
+    //     println!("WARN: No capture for input: '{}'", text);
+    // }
     caps
 }
 
@@ -28,16 +32,16 @@ fn test_extract_bold_file_with_backticks() {
     let caps = get_captures(input).expect("Regex failed to capture bold file with backticks");
     let (action, path) = extract_action_path_from_captures(&caps).unwrap();
     assert_eq!(action, ACTION_FILE);
-    assert_eq!(path, "path/in/ticks.txt"); // Backticks are stripped
+    assert_eq!(path, "path/in/ticks.txt"); // Backticks are stripped by extractor
 }
 
 #[test]
 fn test_extract_hash_deleted_file() {
-    let input = "## Deleted File: old_file.log  ";
+    let input = "## Deleted File: old_file.log  "; // Trailing space handled by regex/extractor
     let caps = get_captures(input).expect("Regex failed to capture hash deleted file");
     let (action, path) = extract_action_path_from_captures(&caps).unwrap();
     assert_eq!(action, ACTION_DELETED_FILE);
-    assert_eq!(path, "old_file.log"); // Trailing space trimmed from content part
+    assert_eq!(path, "old_file.log"); // Trailing space trimmed by extractor
 }
 
 #[test]
@@ -47,7 +51,7 @@ fn test_extract_hash_deleted_file_with_backticks() {
         get_captures(input).expect("Regex failed to capture hash deleted file with backticks");
     let (action, path) = extract_action_path_from_captures(&caps).unwrap();
     assert_eq!(action, ACTION_DELETED_FILE);
-    assert_eq!(path, "another/tick.log"); // Backticks stripped
+    assert_eq!(path, "another/tick.log"); // Backticks stripped by extractor
 }
 
 #[test]
@@ -62,6 +66,8 @@ fn test_extract_backtick_only() {
 #[test]
 fn test_extract_bold_file_with_trailing_text_outside() {
     let input = "**File: path/to/file.txt** (description)";
+    // Note: The simplified bold regex `.+` captures `path/to/file.txt** (description)`
+    // The extractor logic then needs to handle this.
     let caps = get_captures(input).expect("Regex failed to capture bold file with trailing text");
     let (action, path) = extract_action_path_from_captures(&caps).unwrap();
     assert_eq!(action, ACTION_FILE);
@@ -71,6 +77,8 @@ fn test_extract_bold_file_with_trailing_text_outside() {
 #[test]
 fn test_extract_hash_file_with_trailing_text() {
     let input = "## File: path/to/file.txt # comment";
+    // Note: The simplified hash regex `.*` captures `path/to/file.txt # comment`
+    // The extractor logic then needs to handle this.
     let caps = get_captures(input).expect("Regex failed to capture hash file with trailing text");
     let (action, path) = extract_action_path_from_captures(&caps).unwrap();
     assert_eq!(action, ACTION_FILE);
@@ -80,6 +88,8 @@ fn test_extract_hash_file_with_trailing_text() {
 #[test]
 fn test_extract_hash_file_with_backticks_and_trailing_text() {
     let input = "## File: `path/in/ticks.txt` (description)";
+    // Note: The simplified hash regex `.*` captures `` `path/in/ticks.txt` (description)``
+    // The extractor logic then needs to handle this (find backticks first).
     let caps = get_captures(input)
         .expect("Regex failed to capture hash file with ticks and trailing text");
     let (action, path) = extract_action_path_from_captures(&caps).unwrap();
@@ -90,6 +100,7 @@ fn test_extract_hash_file_with_backticks_and_trailing_text() {
 #[test]
 fn test_extract_backtick_only_with_trailing_text_outside() {
     let input = "`simple/path.rs` (some comment)";
+    // Note: The backtick regex itself handles the trailing text optionally.
     let caps =
         get_captures(input).expect("Regex failed to capture backtick only with trailing text");
     let (action, path) = extract_action_path_from_captures(&caps).unwrap();
@@ -136,8 +147,8 @@ fn test_extract_bold_backtick() {
     assert_eq!(path, "bold/tick.js");
 }
 
-#[test]
 // This test was already correct, but adding a comment for clarity
+#[test]
 fn test_extract_bold_backtick_with_trailing_text() {
     let input = "**`bold/tick.js`** and more";
     let caps =
@@ -170,16 +181,22 @@ fn test_extract_hash_backtick_with_trailing_text() {
 fn test_extract_no_match() {
     assert!(get_captures("Just text").is_none());
     assert!(get_captures("**NotAnAction: path**").is_none());
-    // This should now match the regex, but extractor should return None
-    assert!(extract_action_path_from_captures(&get_captures("## File: ").unwrap()).is_none());
-    // Test extractor directly for empty path case
-    let caps_empty = get_captures("## File: ").unwrap(); // Regex matches
-    assert!(extract_action_path_from_captures(&caps_empty).is_none()); // Extractor rejects empty path
-    let caps_empty_ticks = get_captures("## File: ``").unwrap(); // Regex matches
-    assert!(extract_action_path_from_captures(&caps_empty_ticks).is_none()); // Extractor rejects empty path
-                                                                             // Test extractor directly for only-backticks case
-    let caps_only_ticks = get_captures("## File: ```").unwrap(); // Regex matches
-    assert!(extract_action_path_from_captures(&caps_only_ticks).is_none()); // Extractor rejects only-backticks path
+    // This should now match the regex, but extractor should return None because path is empty
+    let caps_empty_hash = get_captures("## File: ").unwrap();
+    assert!(extract_action_path_from_captures(&caps_empty_hash).is_none());
+    let caps_empty_bold = get_captures("**File:**").unwrap(); // No space after colon
+    assert!(extract_action_path_from_captures(&caps_empty_bold).is_none());
+    // Test extractor directly for empty path case within content
+    let caps_empty_ticks_hash = get_captures("## File: ``").unwrap(); // Regex matches
+    assert!(extract_action_path_from_captures(&caps_empty_ticks_hash).is_none()); // Extractor rejects empty path
+    let caps_empty_ticks_bold = get_captures("**File: ``**").unwrap(); // Regex matches
+    assert!(extract_action_path_from_captures(&caps_empty_ticks_bold).is_none()); // Extractor rejects empty path
+                                                                                  // Test extractor directly for only-backticks case
+    let caps_only_ticks_hash = get_captures("## File: ```").unwrap(); // Regex matches
+    assert!(extract_action_path_from_captures(&caps_only_ticks_hash).is_none()); // Extractor rejects only-backticks path
+    let caps_only_ticks_bold = get_captures("**File: ```**").unwrap(); // Regex matches
+    assert!(extract_action_path_from_captures(&caps_only_ticks_bold).is_none());
+    // Extractor rejects only-backticks path
 }
 
 #[test]

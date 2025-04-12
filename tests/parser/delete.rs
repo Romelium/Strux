@@ -76,3 +76,29 @@ fn test_parse_wrapped_bold_deleted_file_header() {
     assert_eq!(actions.len(), 1);
     assert_action(actions.first(), ActionType::Delete, "temp.log", None);
 }
+
+#[test]
+fn test_parse_hash_deleted_file_header_with_trailing_comment() {
+    let md = "\n## Deleted File: old_cache.dat # Remove this\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert_eq!(actions.len(), 1);
+    assert_action(
+        actions.first(),
+        ActionType::Delete,
+        "old_cache.dat", // Trailing comment ignored
+        None,
+    );
+}
+
+#[test]
+fn test_parse_bold_deleted_file_header_with_trailing_text_outside() {
+    let md = "\n**Deleted File: report.pdf** (old version)\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert_eq!(actions.len(), 1);
+    assert_action(
+        actions.first(),
+        ActionType::Delete,
+        "report.pdf",
+        None, // Trailing text ignored
+    );
+}

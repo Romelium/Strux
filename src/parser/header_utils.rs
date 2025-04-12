@@ -4,77 +4,90 @@ use crate::constants::{ACTION_DELETED_FILE, ACTION_FILE};
 use crate::core_types::ActionType;
 use regex::Captures;
 
-/// Extracts action word and path string from HEADER_REGEX captures.
+/// Extracts action word and path string from HEADER_REGEX captures, ignoring trailing text.
+/// Relies on simplified regex capture groups and performs more parsing here.
 pub(crate) fn extract_action_path_from_captures(caps: &Captures) -> Option<(String, String)> {
     let mut action_word: Option<String> = None;
-    let mut header_path: Option<String> = None;
-    let mut content_str: Option<&str> = None;
+    let mut final_path: Option<String> = None;
 
-    // Extract based on named capture groups
-    if let (Some(aw), Some(c)) = (caps.name("action_word_bold"), caps.name("content_bold")) {
-        action_word = Some(aw.as_str().to_string());
-        content_str = Some(c.as_str());
-    } else if let (Some(aw), Some(c)) = (caps.name("action_word_hash"), caps.name("content_hash")) {
-        action_word = Some(aw.as_str().to_string());
-        content_str = Some(c.as_str());
+    // --- Determine Action Word and Raw Content/Path ---
+
+    // Check specific backtick path captures first (cleanest case)
+    if let Some(p) = caps.name("path_hash_backtick") {
+        action_word = Some(ACTION_FILE.to_string());
+        final_path = Some(p.as_str().trim().to_string());
     } else if let Some(p) = caps.name("path_backtick_only") {
         action_word = Some(ACTION_FILE.to_string());
-        header_path = Some(p.as_str().trim().to_string());
+        final_path = Some(p.as_str().trim().to_string());
     } else if let Some(p) = caps.name("path_numbered_backtick") {
         action_word = Some(ACTION_FILE.to_string());
-        header_path = Some(p.as_str().trim().to_string());
+        final_path = Some(p.as_str().trim().to_string());
     } else if let Some(p) = caps.name("path_bold_backtick") {
         action_word = Some(ACTION_FILE.to_string());
-        header_path = Some(p.as_str().trim().to_string());
-    } else if let Some(p) = caps.name("path_hash_backtick") {
-        action_word = Some(ACTION_FILE.to_string());
-        header_path = Some(p.as_str().trim().to_string());
+        final_path = Some(p.as_str().trim().to_string());
+    }
+    // Check combined Action: content captures (need parsing)
+    else if let (Some(aw), Some(c)) = (caps.name("action_word_bold"), caps.name("content_bold")) {
+        action_word = Some(aw.as_str().to_string());
+        final_path = parse_content_for_path(c.as_str());
+    } else if let (Some(aw), Some(c)) = (caps.name("action_word_hash"), caps.name("content_hash")) {
+        action_word = Some(aw.as_str().to_string());
+        final_path = parse_content_for_path(c.as_str());
     }
 
-    // Process content_str for Bold/Hash Action formats to extract path
-    if let Some(content) = content_str {
-        let stripped_content = content.trim();
-        // Check if the stripped content is *only* backticks (e.g., `` ` `` or ``` `` ```)
-        // If so, treat it as an empty path.
-        let is_only_backticks = stripped_content.starts_with('`')
-            && stripped_content.ends_with('`')
-            && stripped_content
-                .chars()
-                .skip(1)
-                .take(stripped_content.len() - 2)
-                .all(|c| c == '`');
-
-        if is_only_backticks {
-            header_path = Some("".to_string()); // Treat as empty path explicitly
-        } else {
-            // Prefer path inside backticks if present within the content part
-            header_path = Some(
-                if stripped_content.len() > 1
-                    && stripped_content.starts_with('`')
-                    && stripped_content.ends_with('`')
-                {
-                    stripped_content[1..stripped_content.len() - 1]
-                        .trim()
-                        .to_string() // Inside backticks
-                } else {
-                    stripped_content.to_string() // Whole content as path
-                },
-            );
-        }
-    }
-
-    // Validate and return
-    match (action_word, header_path) {
-        // Ensure the extracted path is not empty AFTER trimming potential backticks and whitespace
-        (Some(aw), Some(hp)) => {
-            let final_path = hp.trim(); // Trim whitespace from final path string
-            if !final_path.is_empty() {
-                Some((aw, final_path.to_string()))
+    // --- Validate and Return ---
+    match (action_word, final_path) {
+        // Ensure final path is not empty AFTER trimming potential backticks and whitespace
+        (Some(aw), Some(fp)) => {
+            let final_trimmed_path = fp.trim();
+            // Add check: reject if path consists ONLY of backticks after trimming
+            if !final_trimmed_path.is_empty() && final_trimmed_path.chars().all(|c| c == '`') {
+                return None;
+            }
+            if !final_trimmed_path.is_empty() {
+                Some((aw, final_trimmed_path.to_string()))
             } else {
                 None
             }
         }
-        _ => None,
+        _ => None, // No action word, or path parsing failed/resulted in empty path
+    }
+}
+
+/// Parses the raw captured content string to extract the path, ignoring trailing text.
+fn parse_content_for_path(raw_content: &str) -> Option<String> {
+    let trimmed_content = raw_content.trim();
+
+    // Check for path inside backticks first
+    if let (Some(start), Some(end)) = (trimmed_content.find('`'), trimmed_content.rfind('`')) {
+        if start < end {
+            // Found distinct backticks, extract path from within
+            let path_between_ticks = trimmed_content[start + 1..end].trim();
+            // Ensure the content BETWEEN the ticks is not empty after trimming
+            return if path_between_ticks.is_empty() {
+                None
+            } else {
+                Some(path_between_ticks.to_string())
+            };
+        }
+        // If start >= end, backticks are malformed or nested in a way we don't handle here.
+        // Fall through to treat as non-backticked path.
+    }
+
+    // No valid backticks found, treat as non-backticked path.
+    // Find the end of the path (before potential trailing text).
+    // Trailing text starts with " (" or " #".
+    let path_end_index = trimmed_content
+        .find(" (")
+        .or_else(|| trimmed_content.find(" #"))
+        .unwrap_or(trimmed_content.len()); // If no marker found, path is the whole string
+
+    let path = trimmed_content[..path_end_index].trim();
+
+    if path.is_empty() {
+        None
+    } else {
+        Some(path.to_string())
     }
 }
 

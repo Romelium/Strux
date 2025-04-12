@@ -81,3 +81,42 @@ fn test_parse_hash_backtick_path_header() {
         Some("Some raw content.\n"),
     );
 }
+
+#[test]
+fn test_parse_hash_file_header_with_trailing_comment() {
+    let md = "\n## File: config.cfg # Main config file\n```\nkey=value\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert_eq!(actions.len(), 1);
+    assert_action(
+        actions.first(),
+        ActionType::Create,
+        "config.cfg", // Trailing comment ignored
+        Some("key=value\n"),
+    );
+}
+
+#[test]
+fn test_parse_bold_file_header_with_trailing_text_outside() {
+    let md = "\n**File: data.json** (important data)\n```json\n{}\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert_eq!(actions.len(), 1);
+    assert_action(
+        actions.first(),
+        ActionType::Create,
+        "data.json", // Trailing text ignored
+        Some("{}\n"),
+    );
+}
+
+#[test]
+fn test_parse_backtick_path_header_with_trailing_text() {
+    let md = "\n`script.pl` # Perl script\n```perl\n#!/usr/bin/perl\nprint \"Hi\";\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert_eq!(actions.len(), 1);
+    assert_action(
+        actions.first(),
+        ActionType::Create,
+        "script.pl", // Trailing text ignored
+        Some("#!/usr/bin/perl\nprint \"Hi\";\n"),
+    );
+}

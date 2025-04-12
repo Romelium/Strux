@@ -81,3 +81,16 @@ fn test_parse_markdown_block_not_a_header() {
         "Markdown block with non-header line should be ignored"
     );
 }
+
+#[test]
+fn test_parse_wrapped_hash_file_header_with_trailing_text() {
+    let md = "\n```markdown\n## File: wrapped/config.toml # Main config\n```\n\n```toml\n[settings]\nkey = \"value\"\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert_eq!(actions.len(), 1);
+    assert_action(
+        actions.first(),
+        ActionType::Create,
+        "wrapped/config.toml", // Trailing text ignored
+        Some("[settings]\nkey = \"value\"\n"),
+    );
+}
