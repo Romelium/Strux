@@ -26,7 +26,7 @@ jobs:
             bin_suffix: ""
             archive_format: tar.gz
             archive_command: |
-              tar czf ${{ env.ARCHIVE_NAME }} -C ${{ env.STAGING_DIR }} .
+              tar czf "$ARCHIVE_NAME" -C "$STAGING_DIR" .
             archive_shell: bash
 
           # macOS (Intel x86_64) - tar.gz archive
@@ -35,7 +35,7 @@ jobs:
             bin_suffix: ""
             archive_format: tar.gz
             archive_command: |
-              tar czf ${{ env.ARCHIVE_NAME }} -C ${{ env.STAGING_DIR }} .
+              tar czf "$ARCHIVE_NAME" -C "$STAGING_DIR" .
             archive_shell: bash
 
           # macOS (Apple Silicon arm64) - tar.gz archive
@@ -44,7 +44,7 @@ jobs:
             bin_suffix: ""
             archive_format: tar.gz
             archive_command: |
-              tar czf ${{ env.ARCHIVE_NAME }} -C ${{ env.STAGING_DIR }} .
+              tar czf "$ARCHIVE_NAME" -C "$STAGING_DIR" .
             archive_shell: bash
 
           # Windows (MSVC x86_64) - zip archive
@@ -53,7 +53,7 @@ jobs:
             bin_suffix: ".exe"
             archive_format: zip
             archive_command: |
-              Compress-Archive -Path ${{ env.STAGING_DIR }}\* -DestinationPath ${{ env.ARCHIVE_NAME }}
+              Compress-Archive -Path "$($env:STAGING_DIR)\*" -DestinationPath "$env:ARCHIVE_NAME"
             archive_shell: pwsh
 
     steps:
