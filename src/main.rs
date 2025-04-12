@@ -1,94 +1,20 @@
 use clap::Parser;
 use std::fs;
-use std::path::{Path, PathBuf}; // Added Path import
 use std::process::ExitCode;
 
 // Use the library's public interface
-// REMOVED: print_summary import from library
 use markdown_processor::{parse_markdown, process_actions, AppError, Summary};
 
-// --- Argument Parsing ---
-
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None,
-    after_help = "Processes a structured markdown file to generate or delete files.\n\
-                  Recognizes various header formats (see README/docs)."
-)]
-struct Cli {
-    /// Path to the markdown file containing the project structure.
-    markdown_file: PathBuf,
-
-    /// The base directory to create/delete files in (default: ./project-generated).
-    #[arg(short, long, value_name = "DIR", default_value = "./project-generated")]
-    output_dir: PathBuf, // Use default_value directly
-
-    /// Overwrite existing files for 'File' actions.
-    #[arg(short, long)]
-    force: bool,
-}
-
-// --- Summary Printing Logic (Moved from library) ---
-
-/// Prints the final processing summary to the console.
-/// This function now lives within the binary crate.
-fn print_summary(summary: &Summary, resolved_base: &Path) {
-    println!("{}", "-".repeat(40));
-    println!("Processing Summary:");
-    println!(
-        "  Base Directory:                     {}",
-        resolved_base.display()
-    );
-    println!("  Files created:                      {}", summary.created);
-    println!(
-        "  Files overwritten (--force):        {}",
-        summary.overwritten
-    );
-    println!("  Files deleted:                      {}", summary.deleted);
-    println!("{}", "-".repeat(14) + " Skipped " + &"-".repeat(19));
-    println!(
-        "  Skipped (create, exists):           {}",
-        summary.skipped_exists
-    );
-    println!(
-        "  Skipped (delete, not found):        {}",
-        summary.skipped_not_found
-    );
-    println!(
-        "  Skipped (delete, is dir):           {}",
-        summary.skipped_isdir_delete
-    );
-    println!(
-        "  Skipped (delete, other type):       {}",
-        summary.skipped_other_type
-    );
-    println!("{}", "-".repeat(12) + " Failed/Errors " + &"-".repeat(13));
-    println!(
-        "  Failed (unsafe/invalid path):       {}",
-        summary.failed_unsafe
-    );
-    println!(
-        "  Failed (create, target is dir):     {}",
-        summary.failed_isdir_create
-    );
-    println!(
-        "  Failed (create, parent is file):    {}",
-        summary.failed_parent_isdir
-    );
-    println!(
-        "  Failed (I/O or Path error):         {}",
-        summary.failed_io
-    );
-    println!(
-        "  Failed (other unexpected errors):   {}",
-        summary.error_other
-    );
-    println!("{}", "-".repeat(40));
-}
+// Modules defined within the binary crate
+mod cli;
+use cli::args::Cli; // Import the argument parser struct
+use cli::output::print_summary; // Import the summary printing function
 
 // --- Main Execution Logic ---
 
+/// Orchestrates the entire process: parsing args, reading files, calling library, printing summary.
 fn run() -> Result<Summary, AppError> {
-    let cli = Cli::parse();
+    let cli = Cli::parse(); // Now the Parser trait is in scope, so parse() is found
 
     // Resolve markdown file path for clearer error messages
     let resolved_md_path = cli.markdown_file.canonicalize().map_err(AppError::Io)?;
@@ -126,7 +52,7 @@ fn run() -> Result<Summary, AppError> {
     // Resolve again for printing; process_actions resolves internally for safety.
     // Use original path if canonicalize fails (e.g., dir deleted during processing).
     let resolved_output_dir_display = cli.output_dir.canonicalize().unwrap_or(cli.output_dir);
-    // Call the local print_summary function defined above
+    // Call the imported print_summary function
     print_summary(&summary, &resolved_output_dir_display);
 
     Ok(summary)
@@ -134,6 +60,7 @@ fn run() -> Result<Summary, AppError> {
 
 // --- Entry Point ---
 
+/// Main application entry point. Calls `run` and handles errors.
 fn main() -> ExitCode {
     match run() {
         Ok(_) => {
