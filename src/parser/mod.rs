@@ -13,9 +13,11 @@ mod pass2;
 mod path_utils;
 mod regex; // Contains regex definitions
 
-// Declare the test module for internal_comment.rs
+// Declare the test modules for submodules
 #[cfg(test)]
-mod internal_comment_tests; // ADDED HERE
+mod header_utils_tests; // ADDED
+#[cfg(test)]
+mod internal_comment_tests;
 
 // Re-export the main parsing function
 // Removed pub use of check_action_conflicts as it's crate-internal
