@@ -1,11 +1,11 @@
 //! CLI tests related to file deletion.
 
-use crate::common::get_cmd;
+use super::common::get_cmd;
+// Import setup_temp_dir from the top-level tests/test_common.rs
+use crate::test_common::setup_temp_dir;
 use assert_cmd::prelude::*;
 use assert_fs::prelude::*;
 use predicates::prelude::*;
-// Import setup_temp_dir from the top-level tests/common
-use crate::common::setup_temp_dir;
 
 #[test]
 fn test_cli_basic_delete() {

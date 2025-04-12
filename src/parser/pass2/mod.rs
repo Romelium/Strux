@@ -22,7 +22,7 @@ pub(crate) fn run_pass2(
     for caps in HEADER_REGEX.captures_iter(content_to_parse) {
         let header_match = caps.get(0).unwrap(); // The whole match
         let header_start_rel = header_match.start();
-        // Removed header_end_rel as it's not needed
+        // Removed header_text debug variable
         let original_header_pos = header_start_rel + parse_offset;
 
         // Skip if this header's original start position was already processed in Pass 1
@@ -31,33 +31,23 @@ pub(crate) fn run_pass2(
         }
 
         // Skip if this header falls within a code block range processed by Pass 1
-        // Use header_start_rel for comparison with ranges relative to content_to_parse
         let is_inside_block =
             processed_code_block_ranges
                 .iter()
                 .any(|&(block_start, block_end)| {
-                    // --- DEBUG PRINT ---
-                    // println!(
-                    //     "  [Pass 2 Check] HeaderRel={}, BlockRange=({},{}), Inside={}",
-                    //     header_start_rel, block_start, block_end,
-                    //     header_start_rel >= block_start && header_start_rel < block_end
-                    // );
                     header_start_rel >= block_start && header_start_rel < block_end
                 });
         if is_inside_block {
             continue;
         }
 
-        // DEBUG: Log attempt to extract (Remove this line)
-        // println!("  [Pass 2] Checking header at pos {}: '{}'", original_header_pos, header_match.as_str().trim());
+        // Try to extract action and path.
+        let extraction_result = extract_action_path_from_captures(&caps);
 
-        // Try to extract action and path. If extraction fails (returns None),
-        // it means the path was empty or it's a special case handled by Pass 1.
-        // Pass 2 should ignore these cases entirely.
-        if let Some((action_word, path)) = extract_action_path_from_captures(&caps) {
+        // Removed debug logs
+
+        if let Some((action_word, path)) = extraction_result {
             // Path extraction succeeded, proceed with validation and action handling for Pass 2.
-            // DEBUG: Log success (Remove this line)
-            // println!("    [Pass 2] Extracted action='{}', path='{}'", action_word, path);
             if validate_path_format(&path).is_err() {
                 eprintln!(
                     "Warning: Invalid path format in standalone header '{}'. Skipping.",
@@ -86,10 +76,8 @@ pub(crate) fn run_pass2(
                 }
             }
         } else {
-            // DEBUG: Log extraction failure (Remove this line)
-            // println!("    [Pass 2] Path extraction failed or path was empty. Ignoring header.");
+            // Extraction failed or path was empty.
         }
-        // If extract_action_path_from_captures returned None, do nothing in Pass 2.
     }
     Ok(())
 }

@@ -1,7 +1,7 @@
 //! Tests for parser heuristics (avoiding false positives).
 
-use super::common::*; // Use helper from common.rs
-                      // use markdown_processor::core_types::ActionType; // Not needed here
+// Use helper from common.rs
+// use markdown_processor::core_types::ActionType; // Not needed here
 use markdown_processor::parse_markdown;
 
 #[test]

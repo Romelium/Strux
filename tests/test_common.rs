@@ -15,14 +15,14 @@ pub fn setup_temp_dir() -> TempDir {
 #[allow(dead_code)]
 pub fn run_processor(
     markdown_content: &str,
-    base_dir: &TempDir,
+    base_dir_path: &Path, // Accept Path instead of TempDir directly
     overwrite: bool,
 ) -> Result<(Summary, Vec<Action>), AppError> {
     // 1. Parse
     let actions = parse_markdown(markdown_content)?;
 
     // 2. Process
-    let summary = process_actions(base_dir.path(), actions.clone(), overwrite)?; // Clone actions for return
+    let summary = process_actions(base_dir_path, actions.clone(), overwrite)?; // Clone actions for return
 
     Ok((summary, actions))
 }

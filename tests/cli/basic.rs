@@ -1,12 +1,12 @@
 //! Basic CLI command tests (help, version, default output).
 
-use crate::common::get_cmd; // Use common helper from the same test module
+use super::common::get_cmd; // Use common helper from the same test module
+                            // Import setup_temp_dir from the top-level tests/test_common.rs
+use crate::test_common::setup_temp_dir;
 use assert_cmd::prelude::*;
 use assert_fs::prelude::*;
 use predicates::prelude::*;
 use std::env;
-// Import setup_temp_dir from the top-level tests/common
-use crate::common::setup_temp_dir;
 
 #[test]
 fn test_cli_help() {

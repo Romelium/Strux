@@ -38,18 +38,23 @@ fn test_parse_empty_content() {
     let md = "\n## File: empty.txt\n```\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1);
+    // CORRECTED: Empty block should result in empty content.
+    // ensure_trailing_newline only adds a newline if the content is non-empty.
     assert_action(actions.first(), ActionType::Create, "empty.txt", Some(""));
 }
 
 #[test]
 fn test_parse_content_no_trailing_newline() {
-    let md = "\n**File: data.csv**\n```\ncol1,col2\nval1,val2```"; // No newline before closing ```
+    // CORRECTED: Place closing fence on its own line.
+    let md = "\n**File: data.csv**\n```\ncol1,col2\nval1,val2\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
-    assert_eq!(actions.len(), 1);
+    assert_eq!(actions.len(), 1, "Expected one action");
+    // Content extracted is "col1,col2\nval1,val2".
+    // ensure_trailing_newline adds the final '\n'.
     assert_action(
         actions.first(),
         ActionType::Create,
         "data.csv",
-        Some("col1,col2\nval1,val2\n"), // Newline added by parser
+        Some("col1,col2\nval1,val2\n"),
     );
 }

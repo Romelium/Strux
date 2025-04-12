@@ -7,23 +7,21 @@ use regex::Regex;
 // Use Lazy from once_cell for thread-safe static initialization of Regex objects.
 
 // Regex to find file headers anchored to the start of a line.
-// Simplified ## alternatives and removed verbose mode for robustness.
+// Revised to prevent matching across lines and simplify trailing whitespace handling.
 pub static HEADER_REGEX: Lazy<Regex> = Lazy::new(|| {
     let actions = &*VALID_ACTIONS_REGEX_STR; // Dereference Lazy<String>
-                                             // println!("[REGEX INIT] Action words pattern part: '{}'", actions); // DEBUG
 
-    // NOTE: Removed verbose mode (?x). Whitespace is now significant.
-    // Order: Bold Action, Hash Backtick, Hash Action, Backtick Only, Numbered Backtick, Bold Backtick
-    // ALL PARTS COMBINED INTO A SINGLE RAW STRING LITERAL for format!
-    // Use [^\n] instead of . in capture groups to prevent matching across lines.
-    // Added optional trailing text `(?:\s[^\n]*)?` to backtick_only and bold_backtick patterns.
+    // Use a single multi-line raw string literal r#"..."# as the format string
+    // Put back \s*$ anchor specifically for content_bold and content_hash alternatives.
+    // Use non-greedy *? for content capture before the \s*$ anchor.
+    // No final \s*$ at the very end of the whole pattern string.
     let pattern = format!(
-        // Start of the single raw string literal containing the entire pattern
-        r"(?m)^(?:\*\*\s*(?P<action_word_bold>{actions}):\s+(?P<content_bold>[^\n]+?)\s*\*\*(?:\s[^\n]*)?|##\s+`(?P<path_hash_backtick>[^`\n]+?)`\s*(?:\s[^\n]*)?|##\s+(?P<action_word_hash>{actions}):\s*(?P<content_hash>[^\n]*?)\s*(?:\s[^\n]*)?|`(?P<path_backtick_only>[^`\n]+?)`(?:\s[^\n]*)?|(?P<num>\d+)\.\s+`(?P<path_numbered_backtick>[^`\n]+?)`(?:\s[^\n]*)?|\*\*\s*`(?P<path_bold_backtick>[^`\n]+?)`\s*\*\*(?:\s[^\n]*)?)$",
-        // Arguments for format! start after the format string literal
-        actions = actions
+        r#"(?m)^(?:\*\*\s*(?P<action_word_bold>{actions}):\s+(?P<content_bold>[^\n]+?)\s*\*\*|##\s+`(?P<path_hash_backtick>[^`\n]+?)`|##\s+(?P<action_word_hash>{actions}):\s*(?P<content_hash>[^\n]*?)\s*$|`(?P<path_backtick_only>[^`\n]+?)`|(?P<num>\d+)\.\s+`(?P<path_numbered_backtick>[^`\n]+?)`|\*\*\s*`(?P<path_bold_backtick>[^`\n]+?)`\s*\*\*)"#,
+        // Note: Added \s*$ to content_hash alternative only. content_bold already had \s*\*\* which acts similarly.
+        //       Kept content_hash as *? (non-greedy)
+        actions = actions // Argument for format!
     );
-    // println!("[REGEX INIT] Full HEADER_REGEX pattern:\n{}", pattern); // DEBUG
+    // println!("[REGEX INIT] Revised HEADER_REGEX pattern:\n{}", pattern); // DEBUG (optional)
     Regex::new(&pattern).expect("Failed to compile HEADER_REGEX")
 });
 
@@ -31,7 +29,7 @@ pub static HEADER_REGEX: Lazy<Regex> = Lazy::new(|| {
 pub static OPENING_FENCE_REGEX: Lazy<Regex> = Lazy::new(|| {
     // Use raw string literal
     // Handle optional carriage return for CRLF compatibility
-    Regex::new(r"(?m)^\s*(?P<fence>```|````)(?P<lang>[^\n\r]*)(\r?\n)")
+    Regex::new(r#"(?m)^\s*(?P<fence>```|````)(?P<lang>[^\n\r]*)(\r?\n)"#)
         .expect("Failed to compile OPENING_FENCE_REGEX")
 });
 
@@ -59,9 +57,9 @@ pub fn debug_hash_regexes() {
         None => println!("  FAILED TO MATCH Option 6"),
     }
 
-    // Test Option 2 pattern (No newline match)
+    // Test Option 2 pattern (with trailing \s*$)
     let pattern2_nonl_str = format!(
-        r#"(?m)^##\s+(?P<action_word_hash>{actions}):\s*(?P<content_hash>[^\n]*?)\s*$"#,
+        r#"(?m)^##\s+(?P<action_word_hash>{actions}):\s*(?P<content_hash>[^\n]*?)\s*$"#, // Added \s*$ back
         actions = actions
     );
     let regex2_nonl = Regex::new(&pattern2_nonl_str).unwrap();
@@ -70,7 +68,7 @@ pub fn debug_hash_regexes() {
     let input2c = "## File: "; // Should match, content empty
 
     println!(
-        "\nTesting Pattern 2 (No newline match): '{}'",
+        "\nTesting Pattern 2 (with trailing anchor): '{}'", // Updated description
         pattern2_nonl_str
     );
     println!("Input 2a: '{}'", input2a);
@@ -78,7 +76,7 @@ pub fn debug_hash_regexes() {
         Some(caps) => println!(
             "  MATCHED Option 2 on 2a: action='{}', content='{}'",
             caps.name("action_word_hash").unwrap().as_str(),
-            caps.name("content_hash").unwrap().as_str()
+            caps.name("content_hash").unwrap().as_str() // Should capture content before trailing spaces
         ),
         None => println!("  FAILED TO MATCH Option 2 on 2a"),
     }
@@ -102,7 +100,7 @@ pub fn debug_hash_regexes() {
     }
 
     // Test Combined HEADER_REGEX on failing inputs
-    println!("\nTesting Combined HEADER_REGEX (No newline match):");
+    println!("\nTesting Combined HEADER_REGEX (Re-anchored content_hash):"); // Updated description
     println!("Input 6 (hash backtick): '{}'", input6);
     match HEADER_REGEX.captures(input6) {
         Some(caps) => println!(
@@ -111,28 +109,28 @@ pub fn debug_hash_regexes() {
         ),
         None => println!("  Combined FAILED TO MATCH Input 6"),
     }
-    println!("Input 2a (hash deleted): '{}'", input2a);
+    println!("Input 2a (hash deleted): '{}'", input2a); // Test the failing case
     match HEADER_REGEX.captures(input2a) {
         Some(caps) => println!(
-            "  Combined MATCHED Input 2a: action='{}', content='{}'",
+            "  Combined MATCHED Input 2a: action='{}', content='{}'", // EXPECTED MATCH
             caps.name("action_word_hash").unwrap().as_str(),
             caps.name("content_hash").unwrap().as_str()
         ),
         None => println!("  Combined FAILED TO MATCH Input 2a"),
     }
-    println!("Input 2b (hash deleted backtick): '{}'", input2b);
+    println!("Input 2b (hash deleted backtick): '{}'", input2b); // Test the failing case
     match HEADER_REGEX.captures(input2b) {
         Some(caps) => println!(
-            "  Combined MATCHED Input 2b: action='{}', content='{}'",
+            "  Combined MATCHED Input 2b: action='{}', content='{}'", // EXPECTED MATCH
             caps.name("action_word_hash").unwrap().as_str(),
             caps.name("content_hash").unwrap().as_str()
         ),
         None => println!("  Combined FAILED TO MATCH Input 2b"),
     }
-    println!("Input 2c (hash file empty): '{}'", input2c); // Test the problematic case
+    println!("Input 2c (hash file empty): '{}'", input2c);
     match HEADER_REGEX.captures(input2c) {
         Some(caps) => println!(
-            "  Combined MATCHED Input 2c: action='{}', content='{}'", // EXPECTED MATCH, content empty
+            "  Combined MATCHED Input 2c: action='{}', content='{}'",
             caps.name("action_word_hash").unwrap().as_str(),
             caps.name("content_hash").unwrap().as_str()
         ),
@@ -150,7 +148,7 @@ pub fn debug_hash_regexes() {
         None => println!("  Combined FAILED TO MATCH bold backtick"),
     }
 
-    // Test the previously failing cases
+    // Test the previously failing cases (should still pass)
     let input_backtick_trailing = "`simple/path.rs` (some comment)";
     println!("Input backtick trailing: '{}'", input_backtick_trailing);
     match HEADER_REGEX.captures(input_backtick_trailing) {
@@ -172,6 +170,37 @@ pub fn debug_hash_regexes() {
             caps.name("path_bold_backtick").map(|m| m.as_str())
         ),
         None => println!("  Combined FAILED TO MATCH bold backtick trailing"),
+    }
+
+    // Test the multi-line case that failed the test
+    let multi_line_input = "\n## Deleted File: file1.txt\n**Deleted File: dir/file2.txt**\n";
+    println!("\nTesting Multi-Line Input:\n{}", multi_line_input);
+    for (i, caps) in HEADER_REGEX.captures_iter(multi_line_input).enumerate() {
+        println!("  Match {}: '{}'", i + 1, caps.get(0).unwrap().as_str());
+        if let Some(m) = caps.name("action_word_hash") {
+            println!("    action_word_hash: {}", m.as_str());
+        }
+        if let Some(m) = caps.name("content_hash") {
+            println!("    content_hash: {}", m.as_str());
+        }
+        if let Some(m) = caps.name("action_word_bold") {
+            println!("    action_word_bold: {}", m.as_str());
+        }
+        if let Some(m) = caps.name("content_bold") {
+            println!("    content_bold: {}", m.as_str());
+        }
+        if let Some(m) = caps.name("path_hash_backtick") {
+            println!("    path_hash_backtick: {}", m.as_str());
+        }
+        if let Some(m) = caps.name("path_backtick_only") {
+            println!("    path_backtick_only: {}", m.as_str());
+        }
+        if let Some(m) = caps.name("path_numbered_backtick") {
+            println!("    path_numbered_backtick: {}", m.as_str());
+        }
+        if let Some(m) = caps.name("path_bold_backtick") {
+            println!("    path_bold_backtick: {}", m.as_str());
+        }
     }
 
     println!("--- End Regex Debug ---");

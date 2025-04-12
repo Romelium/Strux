@@ -3,8 +3,8 @@
 use assert_fs::prelude::*;
 use markdown_processor::errors::AppError;
 use predicates::prelude::*;
-// Use helpers from the top-level common module
-use crate::common::{run_processor, setup_temp_dir};
+// Use helpers from the top-level test_common module
+use crate::test_common::{run_processor, setup_temp_dir};
 // Use the helper from this module's common
 use super::common::*;
 
