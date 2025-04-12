@@ -5,13 +5,17 @@ use crate::errors::ParseError;
 use std::collections::HashSet; // Removed unused HashMap
 
 // Declare submodules within the parser module
-mod header_utils; // Added
+mod header_utils;
 mod helpers;
-mod internal_comment; // Added
+mod internal_comment;
 mod pass1;
 mod pass2;
-mod path_utils; // Added
+mod path_utils;
 mod regex; // Contains regex definitions
+
+// Declare the test module for internal_comment.rs
+#[cfg(test)]
+mod internal_comment_tests; // ADDED HERE
 
 // Re-export the main parsing function
 // Removed pub use of check_action_conflicts as it's crate-internal
