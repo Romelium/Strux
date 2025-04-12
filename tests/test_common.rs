@@ -2,8 +2,8 @@
 
 use assert_fs::prelude::*;
 use assert_fs::TempDir;
-use markdown_processor::{parse_markdown, process_actions, Action, AppError, Summary};
 use std::path::Path;
+use strux::{parse_markdown, process_actions, Action, AppError, Summary};
 
 /// Sets up a temporary directory and populates it with initial files if needed.
 pub fn setup_temp_dir() -> TempDir {

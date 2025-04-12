@@ -14,7 +14,7 @@ fn test_cli_help() {
     cmd.arg("--help");
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("Usage: markdown_processor"))
+        .stdout(predicate::str::contains("Usage: strux")) // <-- UPDATED USAGE
         .stdout(predicate::str::contains("[OPTIONS] <MARKDOWN_FILE>"))
         .stdout(predicate::str::contains("--output-dir <DIR>"))
         .stdout(predicate::str::contains("--force"));
@@ -26,7 +26,7 @@ fn test_cli_version() {
     cmd.arg("--version");
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains(env!("CARGO_PKG_VERSION")));
+        .stdout(predicate::str::contains(env!("CARGO_PKG_VERSION"))); // Version comes from Cargo.toml
 }
 
 #[test]

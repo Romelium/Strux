@@ -1,8 +1,8 @@
 //! Tests for parsing 'Delete' headers (standalone, special block case, wrapped).
 
 use super::common::*; // Use helper from common.rs
-use markdown_processor::core_types::ActionType;
-use markdown_processor::parse_markdown;
+use strux::core_types::ActionType;
+use strux::parse_markdown;
 
 #[test]
 fn test_parse_bold_deleted_file_header() {

@@ -1,6 +1,6 @@
 //! Tests for parser handling of invalid path formats.
 
-use markdown_processor::parse_markdown;
+use strux::parse_markdown;
 
 #[test]
 fn test_parse_invalid_path_format_skipped() {

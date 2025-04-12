@@ -3,7 +3,7 @@ use std::fs;
 use std::process::ExitCode;
 
 // Use the library's public interface
-use markdown_processor::{parse_markdown, process_actions, AppError, Summary};
+use strux::{parse_markdown, process_actions, AppError, Summary};
 
 // Modules defined within the binary crate
 mod cli;

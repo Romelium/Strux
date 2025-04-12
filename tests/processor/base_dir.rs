@@ -1,8 +1,8 @@
 //! Tests related to base directory handling in the processor.
 
 use assert_fs::prelude::*;
-use markdown_processor::errors::AppError;
 use predicates::prelude::*;
+use strux::errors::AppError;
 // Use helpers from the top-level test_common module
 use crate::test_common::{run_processor, setup_temp_dir};
 // Use the helper from this module's common
@@ -41,8 +41,8 @@ fn test_process_errors_if_base_is_file() {
     base_path_as_file.write_str("I am a file").unwrap();
 
     let md = "\n## File: should_fail.txt\n```\ncontent\n```\n";
-    let actions = markdown_processor::parse_markdown(md).unwrap();
-    let result = markdown_processor::process_actions(base_path_as_file.path(), actions, false);
+    let actions = strux::parse_markdown(md).unwrap();
+    let result = strux::process_actions(base_path_as_file.path(), actions, false);
 
     assert!(result.is_err());
     match result.err().unwrap() {

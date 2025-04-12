@@ -1,6 +1,6 @@
 //! Handles printing output like the summary.
-use markdown_processor::Summary; // Use library's Summary
 use std::path::Path;
+use strux::Summary; // Use library's Summary
 
 /// Prints the final processing summary to the console.
 pub fn print_summary(summary: &Summary, resolved_base: &Path) {

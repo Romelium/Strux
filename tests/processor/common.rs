@@ -1,6 +1,6 @@
 //! Common helpers for processor integration tests.
 
-use markdown_processor::core_types::Summary;
+use strux::core_types::Summary;
 
 // --- Test Helpers ---
 

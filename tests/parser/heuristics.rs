@@ -1,8 +1,8 @@
 //! Tests for parser heuristics (avoiding false positives).
 
 // Use helper from common.rs
-// use markdown_processor::core_types::ActionType; // Not needed here
-use markdown_processor::parse_markdown;
+// use strux::core_types::ActionType; // Not needed here
+use strux::parse_markdown;
 
 #[test]
 fn test_parse_internal_header_looks_like_comment() {

@@ -1,8 +1,8 @@
 //! Tests for parsing wrapped 'Create' headers (header in ```markdown block).
 
 use super::common::*; // Use helper from common.rs
-use markdown_processor::core_types::ActionType;
-use markdown_processor::parse_markdown;
+use strux::core_types::ActionType;
+use strux::parse_markdown;
 
 #[test]
 fn test_parse_wrapped_hash_file_header() {

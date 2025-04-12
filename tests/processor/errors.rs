@@ -64,14 +64,14 @@ fn test_process_path_not_safe_relative() {
 fn test_process_invalid_path_format_in_action() {
     let temp_dir = setup_temp_dir();
     // Manually create an action with an invalid path to test processor directly.
-    let actions = vec![markdown_processor::Action {
-        action_type: markdown_processor::ActionType::Create,
+    let actions = vec![strux::Action {
+        action_type: strux::ActionType::Create,
         path: "bad//path.txt".to_string(),
         content: Some("content".to_string()),
         original_pos: 0,
     }];
 
-    let summary = markdown_processor::process_actions(temp_dir.path(), actions, false)
+    let summary = strux::process_actions(temp_dir.path(), actions, false)
         .expect("Processing should not fail overall");
 
     temp_dir

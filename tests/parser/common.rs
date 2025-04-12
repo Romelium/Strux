@@ -1,6 +1,6 @@
 //! Common helpers for parser integration tests.
 
-use markdown_processor::core_types::{Action, ActionType};
+use strux::core_types::{Action, ActionType};
 
 // --- Test Helpers ---
 

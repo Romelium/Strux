@@ -1,7 +1,7 @@
 //! Tests for parser edge cases and invalid formats.
 
 // Use helper from common.rs
-use markdown_processor::parse_markdown;
+use strux::parse_markdown;
 
 #[test]
 fn test_parse_empty_input() {

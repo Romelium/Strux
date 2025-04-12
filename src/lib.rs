@@ -1,4 +1,4 @@
-//! # Markdown Processor Lib
+//! # Strux Lib
 //!
 //! Core library for parsing markdown and processing file actions.
 
