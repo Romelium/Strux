@@ -136,7 +136,6 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           generate_release_notes: true
-          # This glob will now find all the archive files downloaded into release-assets
-          files: release-assets/*
+          files: release-assets/*/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
