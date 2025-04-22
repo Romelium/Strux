@@ -1,4 +1,4 @@
-//! Tests for parsing internal 'Create' headers (// File:, //path).
+//! Tests for parsing internal 'Create' headers (// File:, //path, ## File:).
 
 use super::common::*; // Use helper from common.rs
 use strux::core_types::ActionType;
@@ -40,5 +40,63 @@ fn test_parse_internal_comment_backticks_path_excluded() {
         ActionType::Create,
         "path with spaces/file.txt",
         Some("Content here.\n"), // Header line excluded
+    );
+}
+
+// --- NEW TESTS for ## File: internal header ---
+
+#[test]
+fn test_parse_internal_hash_file_header_excluded() {
+    let md = "\n```yaml\n## File: config/settings.yaml\nkey: value\nlist:\n  - item1\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert_eq!(actions.len(), 1);
+    assert_action(
+        actions.first(),
+        ActionType::Create,
+        "config/settings.yaml",
+        Some("key: value\nlist:\n  - item1\n"), // Header line excluded
+    );
+}
+
+#[test]
+fn test_parse_internal_hash_file_header_backticks_excluded() {
+    let md = "\n```\n## File: `docs/My Document.md`\n# Title\nSome text.\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert_eq!(actions.len(), 1);
+    assert_action(
+        actions.first(),
+        ActionType::Create,
+        "docs/My Document.md",
+        Some("# Title\nSome text.\n"), // Header line excluded
+    );
+}
+
+#[test]
+fn test_parse_internal_hash_file_header_not_first_line_ignored() {
+    let md = "\n```\nSome initial content.\n## File: should_be_ignored.txt\nMore content.\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert!(
+        actions.is_empty(),
+        "Internal ## File: header not on the first line should be ignored"
+    );
+}
+
+#[test]
+fn test_parse_internal_hash_file_header_invalid_path_ignored() {
+    let md = "\n```\n## File: invalid//path.log\nLog data\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert!(
+        actions.is_empty(),
+        "Internal ## File: header with invalid path should be ignored"
+    );
+}
+
+#[test]
+fn test_parse_internal_hash_file_header_empty_path_ignored() {
+    let md = "\n```\n## File: \nContent\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert!(
+        actions.is_empty(),
+        "Internal ## File: header with empty path should be ignored"
     );
 }
