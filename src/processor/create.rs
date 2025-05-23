@@ -81,7 +81,10 @@ pub(crate) fn process_create(
 
 /// Ensures the parent directory of a path exists, creating it if necessary.
 /// Also checks if the parent path itself is unexpectedly a file.
-fn ensure_parent_directory(target_path: &Path, resolved_base: &Path) -> Result<(), ProcessError> {
+pub(crate) fn ensure_parent_directory(
+    target_path: &Path,
+    resolved_base: &Path,
+) -> Result<(), ProcessError> {
     if let Some(parent_dir) = target_path.parent() {
         // Avoid checking the base directory itself if it's the parent
         if parent_dir == resolved_base || parent_dir.as_os_str().is_empty() {

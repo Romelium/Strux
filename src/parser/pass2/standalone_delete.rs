@@ -30,6 +30,7 @@ pub(crate) fn handle_standalone_delete(
             Action {
                 action_type: ActionType::Delete,
                 path: path.to_string(),
+                dest_path: None, // Delete actions don't have a dest_path
                 content: None,
                 original_pos: original_header_pos,
             },

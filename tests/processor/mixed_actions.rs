@@ -30,7 +30,7 @@ fn test_process_create_and_delete_mixed() {
         .child("data/to_delete_2.tmp")
         .assert(predicate::path::missing());
 
-    assert_summary(&summary, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0); // 2 created, 2 deleted
+    assert_summary(&summary, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
 
 #[test]
@@ -59,7 +59,7 @@ fn test_process_create_and_overwrite_mixed_force() {
         .child("data/params.json")
         .assert("{\n  \"new\": true,\n  \"overwritten\": true\n}\n");
 
-    assert_summary(&summary, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0); // 2 created, 2 overwritten
+    assert_summary(&summary, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
 
 #[test]
@@ -93,5 +93,44 @@ fn test_process_create_overwrite_delete_complex() {
         .child("non_existent.tmp")
         .assert(predicate::path::missing());
 
-    assert_summary(&summary, 2, 1, 1, 0, 1, 0, 0, 0, 0, 0); // 2 created, 1 overwritten, 1 deleted, 1 skipped_not_found
+    assert_summary(&summary, 2, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+}
+
+#[test]
+fn test_process_create_delete_move_complex() {
+    let temp_dir = setup_temp_dir_with_files(&[
+        ("app.cfg", "old_config_for_move"), // To be moved
+        ("logs/today.log", "log_content"),  // To be deleted
+        ("config/target_for_overwrite.ini", "initial_target_content"), // To be overwritten by move
+    ]);
+
+    let md = "\n## File: src/main.rs\n```rust\nfn main() {}\n```\n\n## Moved File: app.cfg to config/new_app.cfg\n\n**Deleted File: logs/today.log**\n\n## Moved File: `config/target_for_overwrite.ini` to `config/target_for_overwrite.ini`\n\n`docs/README.template`\n```\nTemplate content\n```\n";
+
+    // Run with overwrite = true
+    let (summary, _) = run_processor(md, &temp_dir, true).expect("Processing failed");
+
+    // Check created files
+    temp_dir.child("src/main.rs").assert("fn main() {}\n");
+    temp_dir
+        .child("docs/README.template")
+        .assert("Template content\n");
+
+    // Check moved file (app.cfg -> config/new_app.cfg)
+    temp_dir.child("app.cfg").assert(predicate::path::missing()); // Original gone
+    temp_dir
+        .child("config/new_app.cfg")
+        .assert("old_config_for_move"); // New one exists
+
+    // Check deleted file
+    temp_dir
+        .child("logs/today.log")
+        .assert(predicate::path::missing());
+
+    // Check the move-to-self-overwrite case
+    temp_dir
+        .child("config/target_for_overwrite.ini")
+        .assert("initial_target_content");
+
+    // Expected: 2 created, 1 deleted, 1 moved (app.cfg), 1 moved_overwritten (target_for_overwrite.ini to itself with --force)
+    assert_summary(&summary, 2, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }

@@ -14,6 +14,7 @@ fn test_parse_nested_code_blocks_simple() {
         actions.first(),
         ActionType::Create,
         "src/nested_example.md",
+        None, // No dest_path for Create
         Some(expected_content),
     );
 }
@@ -29,6 +30,7 @@ fn test_parse_nested_blocks_from_readme_example() {
         actions.first(),
         ActionType::Create,
         "Readme",
+        None, // No dest_path for Create
         Some(expected_content),
     );
 }
@@ -38,23 +40,25 @@ fn test_parse_empty_content() {
     let md = "\n## File: empty.txt\n```\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1);
-    // CORRECTED: Empty block should result in empty content.
-    // ensure_trailing_newline only adds a newline if the content is non-empty.
-    assert_action(actions.first(), ActionType::Create, "empty.txt", Some(""));
+    assert_action(
+        actions.first(),
+        ActionType::Create,
+        "empty.txt",
+        None,     // No dest_path for Create
+        Some(""), // Empty block results in empty content
+    );
 }
 
 #[test]
 fn test_parse_content_no_trailing_newline() {
-    // CORRECTED: Place closing fence on its own line.
     let md = "\n**File: data.csv**\n```\ncol1,col2\nval1,val2\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1, "Expected one action");
-    // Content extracted is "col1,col2\nval1,val2".
-    // ensure_trailing_newline adds the final '\n'.
     assert_action(
         actions.first(),
         ActionType::Create,
         "data.csv",
-        Some("col1,col2\nval1,val2\n"),
+        None,                           // No dest_path for Create
+        Some("col1,col2\nval1,val2\n"), // ensure_trailing_newline adds final \n
     );
 }

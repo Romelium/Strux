@@ -3,7 +3,7 @@
 use crate::constants::ACTION_DELETED_FILE;
 use crate::core_types::{Action, ActionType};
 use crate::errors::ParseError;
-use crate::parser::header_utils::{extract_action_path_from_captures, get_action_type};
+use crate::parser::header_utils::{extract_header_action_details, get_action_type};
 use crate::parser::helpers::ensure_trailing_newline;
 use crate::parser::pass1::external_delete_special;
 use crate::parser::path_utils::validate_path_format;
@@ -60,8 +60,18 @@ pub(crate) fn handle_external_header(
 
         // If it wasn't the special delete keyword, proceed with normal extraction.
         // This handles ## File:, **File:**, `path`, **`path`**, ## `path`, etc.
-        if let Some((action_word, path)) = extract_action_path_from_captures(&caps) {
-            if validate_path_format(&path).is_err() {
+        // "Moved File" headers are standalone and should not be associated with code blocks here.
+        if let Some(details) = extract_header_action_details(&caps) {
+            if details.dest_path.is_some() {
+                // This indicates a "Moved File" header
+                println!(
+                    "    Info: External header '{}' is a 'Moved File' action, which is standalone. Ignoring for this code block.",
+                    stripped_prev_line
+                );
+                return Ok(None);
+            }
+
+            if validate_path_format(&details.path).is_err() {
                 eprintln!(
                     "Warning: Invalid path format in external header '{}'. Skipping.",
                     stripped_prev_line
@@ -70,13 +80,14 @@ pub(crate) fn handle_external_header(
             }
             // We already handled Delete above, so only check for Create here.
             // get_action_type correctly maps `File` (implied or explicit) to Create.
-            if let Some(ActionType::Create) = get_action_type(&action_word) {
+            if let Some(ActionType::Create) = get_action_type(&details.action_word) {
                 println!("    Found external header: '{}'", stripped_prev_line);
                 let mut block_data = content[block_content_start..block_content_end].to_string();
                 ensure_trailing_newline(&mut block_data);
                 let action = Action {
                     action_type: ActionType::Create,
-                    path,
+                    path: details.path,
+                    dest_path: None, // Create actions don't have a dest_path
                     content: Some(block_data),
                     original_pos: 0, // Set later in pass1 mod
                 };

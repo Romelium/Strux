@@ -11,12 +11,16 @@ mod base_dir;
 mod create;
 #[path = "processor/delete.rs"]
 mod delete;
+#[path = "processor/duplicates.rs"]
+mod duplicates;
 #[path = "processor/errors.rs"]
 mod errors;
 #[path = "processor/interactions.rs"]
 mod interactions;
 #[path = "processor/mixed_actions.rs"]
 mod mixed_actions;
+#[path = "processor/move_file.rs"] // ADDED
+mod move_file;
 #[path = "processor/multi_create.rs"]
 mod multi_create;
 #[path = "processor/multi_delete.rs"]

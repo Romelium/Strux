@@ -15,6 +15,8 @@ mod delete;
 mod empty_input;
 #[path = "cli/errors.rs"]
 mod errors;
+#[path = "cli/move_file.rs"] // ADDED
+mod move_file;
 #[path = "cli/overwrite_skip.rs"]
 mod overwrite_skip;
 

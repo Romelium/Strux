@@ -20,7 +20,7 @@ fn test_process_create_target_is_directory() {
         .child("target_dir")
         .assert(predicate::path::is_dir());
     assert!(read_file_content(temp_dir.child("target_dir").path()).is_none());
-    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0); // failed_isdir_create = 1
+    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0);
 }
 
 #[test]
@@ -41,7 +41,7 @@ fn test_process_create_parent_is_file() {
     temp_dir
         .child("parent_file/nested_file.txt")
         .assert(predicate::path::missing());
-    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0); // failed_parent_isdir = 1
+    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0);
 }
 
 #[test]
@@ -57,7 +57,7 @@ fn test_process_path_not_safe_relative() {
         !parent_dir.join("outside_file.txt").exists(),
         "File was created outside the base directory!"
     );
-    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0); // failed_unsafe = 1
+    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0);
 }
 
 #[test]
@@ -67,6 +67,7 @@ fn test_process_invalid_path_format_in_action() {
     let actions = vec![strux::Action {
         action_type: strux::ActionType::Create,
         path: "bad//path.txt".to_string(),
+        dest_path: None,
         content: Some("content".to_string()),
         original_pos: 0,
     }];
@@ -77,7 +78,7 @@ fn test_process_invalid_path_format_in_action() {
     temp_dir
         .child("bad//path.txt")
         .assert(predicate::path::missing());
-    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0); // failed_unsafe = 1
+    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0);
 }
 
 #[test]
@@ -87,6 +88,7 @@ fn test_process_empty_path_string() {
     let actions = vec![strux::Action {
         action_type: strux::ActionType::Create,
         path: "".to_string(),
+        dest_path: None,
         content: Some("content".to_string()),
         original_pos: 0,
     }];
@@ -94,9 +96,6 @@ fn test_process_empty_path_string() {
     let summary = strux::process_actions(temp_dir.path(), actions, false)
         .expect("Processing should not fail overall");
 
-    // REMOVED: Flawed assertion - temp_dir.path().join("") == temp_dir.path()
-    // assert!(!temp_dir.path().join("").exists());
-
     // The main check is that the summary correctly recorded the failure.
-    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0); // failed_unsafe = 1 due to invalid format
+    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0);
 }

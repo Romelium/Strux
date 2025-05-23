@@ -20,7 +20,7 @@ fn test_process_create_multiple_files() {
         .assert("key: value\n");
     temp_dir.child("docs/README.md").assert("# Project Docs\n");
 
-    assert_summary(&summary, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0); // 4 created
+    assert_summary(&summary, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
 
 // Other tests moved to multi_delete.rs and mixed_actions.rs

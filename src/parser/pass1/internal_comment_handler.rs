@@ -50,6 +50,7 @@ pub(crate) fn handle_internal_comment_header(
     let action = Action {
         action_type: ActionType::Create,
         path,
+        dest_path: None, // Create actions don't have a dest_path
         content: Some(final_content),
         original_pos: 0, // Set later in pass1 mod
     };

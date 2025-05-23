@@ -57,11 +57,13 @@ pub enum ProcessError {
     #[error("Cannot perform operation. Target path '{path}' exists and is a directory.")]
     TargetIsDirectory { path: PathBuf },
     // #[error("Cannot perform operation. Target path '{path}' is not a file.")]
-    // TargetIsNotFile { path: PathBuf },
+    // TargetIsNotFile { path: PathBuf }, // Potentially for move source if not a file
     #[error(
         "Cannot create file '{path}'. Parent path '{parent_path}' exists but is not a directory."
     )]
     ParentIsNotDirectory { path: PathBuf, parent_path: PathBuf },
+    #[error("Cannot move. Source path '{path}' is a directory, not a file.")]
+    MoveSourceIsDir { path: PathBuf }, // New error for Move
     #[error("Unknown action type encountered")]
     UnknownAction, // Should not happen if parsing is correct
     #[error("Unexpected internal error: {0}")]

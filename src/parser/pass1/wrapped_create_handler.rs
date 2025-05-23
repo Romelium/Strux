@@ -57,6 +57,7 @@ pub(crate) fn handle_wrapped_create(
                 let action = Action {
                     action_type: ActionType::Create,
                     path: path.to_string(), // Clone path here
+                    dest_path: None,        // Create actions don't have a dest_path
                     content: Some(block_data),
                     // Use original_pos of the markdown header block
                     original_pos: fence_start_pos + parse_offset,

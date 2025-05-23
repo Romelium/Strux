@@ -10,6 +10,7 @@ mod action_handler;
 mod base_setup; // ADDED
 mod create;
 mod delete;
+mod move_file; // ADDED
 mod safety;
 mod summary_updater;
 

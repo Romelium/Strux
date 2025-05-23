@@ -3,7 +3,7 @@
 use crate::core_types::{Action, ActionType};
 // Removed unused ParseError import
 // use crate::errors::ParseError;
-use crate::parser::header_utils::{extract_action_path_from_captures, get_action_type};
+use crate::parser::header_utils::{extract_header_action_details, get_action_type};
 use crate::parser::pass1::wrapped_create_handler; // Import new handler
 use crate::parser::path_utils::validate_path_format;
 use crate::parser::regex::HEADER_REGEX;
@@ -38,16 +38,25 @@ pub(crate) fn handle_wrapped_header(
             potential_header_line
         );
         if let Some(header_caps) = HEADER_REGEX.captures(potential_header_line) {
-            if let Some((action_word, path)) = extract_action_path_from_captures(&header_caps) {
-                if validate_path_format(&path).is_err() {
+            if let Some(details) = extract_header_action_details(&header_caps) {
+                if validate_path_format(&details.path).is_err() {
                     eprintln!(
-                        "Warning: Invalid path format in wrapped header '{}'. Skipping.",
-                        potential_header_line
+                        "Warning: Invalid path format in wrapped header '{}' (path: '{}'). Skipping.",
+                        potential_header_line, details.path
                     );
                     return Ok(None);
                 }
+                if let Some(ref dest_path_val) = details.dest_path {
+                    if validate_path_format(dest_path_val).is_err() {
+                        eprintln!(
+                            "Warning: Invalid destination path format in wrapped header '{}' (dest_path: '{}'). Skipping.",
+                            potential_header_line, dest_path_val
+                        );
+                        return Ok(None);
+                    }
+                }
 
-                if let Some(action_type) = get_action_type(&action_word) {
+                if let Some(action_type) = get_action_type(&details.action_word) {
                     match action_type {
                         ActionType::Create => {
                             // Delegate to specific handler
@@ -56,20 +65,38 @@ pub(crate) fn handle_wrapped_header(
                                 parse_offset,
                                 fence_start_pos,
                                 block_outer_end,
-                                &path,
+                                &details.path, // Pass path from details
                                 potential_header_line,
                                 processed_code_block_ranges,
                             );
                         }
                         ActionType::Delete => {
-                            println!("    Found wrapped standalone DELETE action for: '{}'", path);
+                            println!(
+                                "    Found wrapped standalone DELETE action for: '{}'",
+                                details.path
+                            );
                             let action = Action {
                                 action_type: ActionType::Delete,
-                                path, // Path is moved here
+                                path: details.path,
+                                dest_path: None,
                                 content: None,
                                 original_pos: fence_start_pos + parse_offset,
                             };
-                            // No next block range needed for delete, return dummy range
+                            return Ok(Some((action, fence_start_pos, (0, 0))));
+                        }
+                        ActionType::Move => {
+                            println!(
+                                "    Found wrapped standalone MOVE action for: '{}' to '{}'",
+                                details.path,
+                                details.dest_path.as_ref().unwrap_or(&String::new())
+                            );
+                            let action = Action {
+                                action_type: ActionType::Move,
+                                path: details.path,
+                                dest_path: details.dest_path,
+                                content: None,
+                                original_pos: fence_start_pos + parse_offset,
+                            };
                             return Ok(Some((action, fence_start_pos, (0, 0))));
                         }
                     }
@@ -78,7 +105,7 @@ pub(crate) fn handle_wrapped_header(
                 }
             } else {
                 println!(
-                    "    Single line in markdown block ('{}') did not yield a valid path.",
+                    "    Single line in markdown block ('{}') did not yield a valid path or action details.",
                     potential_header_line
                 );
             }

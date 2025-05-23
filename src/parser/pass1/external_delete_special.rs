@@ -44,6 +44,7 @@ pub(crate) fn handle_external_delete_special_case(
             Ok(Some(Action {
                 action_type: ActionType::Delete,
                 path: path_from_block,
+                dest_path: None, // Delete actions don't have a dest_path
                 content: None,
                 original_pos: 0, // original_pos set later
             }))

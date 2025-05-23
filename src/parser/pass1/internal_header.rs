@@ -96,6 +96,7 @@ pub(crate) fn handle_internal_header(
         let action = Action {
             action_type: crate::core_types::ActionType::Create,
             path,
+            dest_path: None, // Create actions don't have a dest_path
             content: Some(final_content),
             original_pos: 0, // Set later in pass1 mod
         };

@@ -16,6 +16,11 @@ pub fn print_summary(summary: &Summary, resolved_base: &Path) {
         summary.overwritten
     );
     println!("  Files deleted:                      {}", summary.deleted);
+    println!("  Files moved:                        {}", summary.moved);
+    println!(
+        "  Files moved (dest overwritten):     {}",
+        summary.moved_overwritten
+    );
     println!("{}", "-".repeat(14) + " Skipped " + &"-".repeat(19));
     println!(
         "  Skipped (create, exists):           {}",
@@ -32,6 +37,22 @@ pub fn print_summary(summary: &Summary, resolved_base: &Path) {
     println!(
         "  Skipped (delete, other type):       {}",
         summary.skipped_other_type
+    );
+    println!(
+        "  Skipped (move, src not found):      {}",
+        summary.skipped_move_src_not_found
+    );
+    println!(
+        "  Skipped (move, src is dir):         {}",
+        summary.skipped_move_src_is_dir
+    );
+    println!(
+        "  Skipped (move, dest exists):        {}",
+        summary.skipped_move_dst_exists
+    );
+    println!(
+        "  Skipped (move, dest is dir):        {}",
+        summary.skipped_move_dst_isdir
     );
     println!("{}", "-".repeat(12) + " Failed/Errors " + &"-".repeat(13));
     println!(

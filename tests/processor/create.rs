@@ -20,7 +20,7 @@ fn test_process_create_file() {
     temp_dir
         .child("new_file.txt")
         .assert("This is a new file.\n");
-    assert_summary(&summary, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(&summary, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
 
 #[test]
@@ -38,5 +38,5 @@ fn test_process_create_with_parent_dir() {
     temp_dir
         .child("src/app/main.rs")
         .assert("fn main() {\n    println!(\"Hello\");\n}\n");
-    assert_summary(&summary, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(&summary, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }

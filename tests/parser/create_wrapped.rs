@@ -13,6 +13,7 @@ fn test_parse_wrapped_hash_file_header() {
         actions.first(),
         ActionType::Create,
         "wrapped/config.toml",
+        None, // No dest_path for Create
         Some("[settings]\nkey = \"value\"\n"),
     );
 }
@@ -26,6 +27,7 @@ fn test_parse_wrapped_bold_file_header() {
         actions.first(),
         ActionType::Create,
         "src/main.js",
+        None, // No dest_path for Create
         Some("console.log('Hello');\n"),
     );
 }
@@ -91,6 +93,7 @@ fn test_parse_wrapped_hash_file_header_with_trailing_text() {
         actions.first(),
         ActionType::Create,
         "wrapped/config.toml", // Trailing text ignored
+        None,                  // No dest_path for Create
         Some("[settings]\nkey = \"value\"\n"),
     );
 }

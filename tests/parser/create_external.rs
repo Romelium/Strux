@@ -13,6 +13,7 @@ fn test_parse_bold_file_header() {
         actions.first(),
         ActionType::Create,
         "src/hello.txt",
+        None, // No dest_path for Create
         Some("Hello, World!\n"),
     );
 }
@@ -26,6 +27,7 @@ fn test_parse_hash_file_header() {
         actions.first(),
         ActionType::Create,
         "config/settings.yaml",
+        None, // No dest_path for Create
         Some("setting: value\nanother: 123\n"),
     );
 }
@@ -39,6 +41,7 @@ fn test_parse_backtick_path_header() {
         actions.first(),
         ActionType::Create,
         "my/script.sh",
+        None, // No dest_path for Create
         Some("#!/bin/bash\necho \"Running...\"\n"),
     );
 }
@@ -52,6 +55,7 @@ fn test_parse_numbered_backtick_path_header() {
         actions.first(),
         ActionType::Create,
         "path/to/data.json",
+        None, // No dest_path for Create
         Some("{ \"key\": \"value\" }\n"),
     );
 }
@@ -65,6 +69,7 @@ fn test_parse_bold_backtick_path_header() {
         actions.first(),
         ActionType::Create,
         "relative/path.md",
+        None, // No dest_path for Create
         Some("# Content\n"),
     );
 }
@@ -78,6 +83,7 @@ fn test_parse_hash_backtick_path_header() {
         actions.first(),
         ActionType::Create,
         "another/file.ext",
+        None, // No dest_path for Create
         Some("Some raw content.\n"),
     );
 }
@@ -91,6 +97,7 @@ fn test_parse_hash_file_header_with_trailing_comment() {
         actions.first(),
         ActionType::Create,
         "config.cfg", // Trailing comment ignored
+        None,         // No dest_path for Create
         Some("key=value\n"),
     );
 }
@@ -104,6 +111,7 @@ fn test_parse_bold_file_header_with_trailing_text_outside() {
         actions.first(),
         ActionType::Create,
         "data.json", // Trailing text ignored
+        None,        // No dest_path for Create
         Some("{}\n"),
     );
 }
@@ -117,6 +125,7 @@ fn test_parse_backtick_path_header_with_trailing_text() {
         actions.first(),
         ActionType::Create,
         "script.pl", // Trailing text ignored
+        None,        // No dest_path for Create
         Some("#!/usr/bin/perl\nprint \"Hi\";\n"),
     );
 }

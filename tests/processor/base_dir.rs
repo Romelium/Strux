@@ -31,7 +31,7 @@ fn test_process_creates_base_directory() {
         .child("new_project_dir/inside.txt")
         .assert("content\n");
 
-    assert_summary(&summary, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(&summary, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
 
 #[test]

@@ -13,6 +13,7 @@ fn test_parse_internal_comment_file_header_excluded() {
         actions.first(),
         ActionType::Create,
         "src/lib.rs",
+        None,                                                  // No dest_path for Create
         Some("fn main() {\n    println!(\"Internal\");\n}\n"), // Header line excluded
     );
 }
@@ -26,6 +27,7 @@ fn test_parse_internal_comment_path_header_included() {
         actions.first(),
         ActionType::Create,
         "myapp/main.py",
+        None,                                                     // No dest_path for Create
         Some("//myapp/main.py\nimport sys\n\nprint(sys.argv)\n"), // Header line included
     );
 }
@@ -39,6 +41,7 @@ fn test_parse_internal_comment_backticks_path_excluded() {
         actions.first(),
         ActionType::Create,
         "path with spaces/file.txt",
+        None,                    // No dest_path for Create
         Some("Content here.\n"), // Header line excluded
     );
 }
@@ -54,6 +57,7 @@ fn test_parse_internal_hash_file_header_excluded() {
         actions.first(),
         ActionType::Create,
         "config/settings.yaml",
+        None,                                   // No dest_path for Create
         Some("key: value\nlist:\n  - item1\n"), // Header line excluded
     );
 }
@@ -67,6 +71,7 @@ fn test_parse_internal_hash_file_header_backticks_excluded() {
         actions.first(),
         ActionType::Create,
         "docs/My Document.md",
+        None,                          // No dest_path for Create
         Some("# Title\nSome text.\n"), // Header line excluded
     );
 }

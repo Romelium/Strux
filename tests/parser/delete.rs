@@ -9,7 +9,13 @@ fn test_parse_bold_deleted_file_header() {
     let md = "\n**Deleted File: old_config.cfg**\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1);
-    assert_action(actions.first(), ActionType::Delete, "old_config.cfg", None);
+    assert_action(
+        actions.first(),
+        ActionType::Delete,
+        "old_config.cfg",
+        None, // No dest_path for Delete
+        None,
+    );
 }
 
 #[test]
@@ -21,6 +27,7 @@ fn test_parse_hash_deleted_file_header() {
         actions.first(),
         ActionType::Delete,
         "temp/file_to_remove.tmp",
+        None, // No dest_path for Delete
         None,
     );
 }
@@ -35,6 +42,7 @@ fn test_parse_hash_deleted_file_header_with_block() {
         actions.first(),
         ActionType::Delete,
         "path/inside/block.log", // Path comes from block content
+        None,                    // No dest_path for Delete
         None,
     );
 }
@@ -57,6 +65,7 @@ fn test_parse_special_delete_header_multi_line_block() {
         actions.first(),
         ActionType::Delete,
         "path/to/delete.txt",
+        None, // No dest_path for Delete
         None,
     );
 }
@@ -66,7 +75,13 @@ fn test_parse_wrapped_hash_deleted_file_header() {
     let md = "\nSome text.\n\n```markdown\n## Deleted File: old/data.json\n```\n\nMore text.\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1);
-    assert_action(actions.first(), ActionType::Delete, "old/data.json", None);
+    assert_action(
+        actions.first(),
+        ActionType::Delete,
+        "old/data.json",
+        None, // No dest_path for Delete
+        None,
+    );
 }
 
 #[test]
@@ -74,7 +89,13 @@ fn test_parse_wrapped_bold_deleted_file_header() {
     let md = "\n```md\n**Deleted File: temp.log**\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");
     assert_eq!(actions.len(), 1);
-    assert_action(actions.first(), ActionType::Delete, "temp.log", None);
+    assert_action(
+        actions.first(),
+        ActionType::Delete,
+        "temp.log",
+        None, // No dest_path for Delete
+        None,
+    );
 }
 
 #[test]
@@ -86,6 +107,7 @@ fn test_parse_hash_deleted_file_header_with_trailing_comment() {
         actions.first(),
         ActionType::Delete,
         "old_cache.dat", // Trailing comment ignored
+        None,            // No dest_path for Delete
         None,
     );
 }
@@ -99,6 +121,7 @@ fn test_parse_bold_deleted_file_header_with_trailing_text_outside() {
         actions.first(),
         ActionType::Delete,
         "report.pdf",
-        None, // Trailing text ignored
+        None, // Trailing text ignored, no dest_path for Delete
+        None,
     );
 }

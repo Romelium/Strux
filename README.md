@@ -6,17 +6,18 @@
 * **Documentation:** Document file structures and provide their content within a single markdown file.
 * **Reproducible Setups:** Define file layouts declaratively.
 
-The tool reads a markdown file, identifies actions (like creating or deleting files) based on specific header formats, and executes these actions relative to a specified output directory.
+The tool reads a markdown file, identifies actions (like creating, deleting, or moving files) based on specific header formats, and executes these actions relative to a specified output directory.
 
 ## Features
 
 * Supports creating files with content defined in code blocks.
 * Supports deleting files.
+* Supports moving files.
 * Multiple header formats for defining actions (Markdown headers, backticks, internal comments).
-* "Wrapped" header format for associating headers with subsequent code blocks.
-* Automatic creation of parent directories.
-* Safety checks to prevent writing outside the target base directory.
-* Option to force overwriting existing files.
+* "Wrapped" header format for associating headers with subsequent code blocks or for standalone delete/move actions.
+* Automatic creation of parent directories for created or moved files.
+* Safety checks to prevent writing or moving outside the target base directory.
+* Option to force overwriting existing files (for create and move actions).
 * Detailed summary output of actions performed, skipped, or failed.
 * Pre-commit hooks configured for code quality and consistency.
 
@@ -62,17 +63,17 @@ strux [OPTIONS] <MARKDOWN_FILE>
 
 **Options:**
 
-* `-o <DIR>`, `--output-dir <DIR>`: The base directory where files and directories will be created or deleted.
+* `-o <DIR>`, `--output-dir <DIR>`: The base directory where files and directories will be created, deleted or moved.
   * **Default:** `./project-generated`. This path is relative to the **current working directory** where you run the command.
   * The directory will be created if it doesn't exist.
   * The command will fail if the specified path exists but is not a directory.
-* `-f`, `--force`: Overwrite existing files when a `File` action targets a path that already exists. Without this flag, existing files will be skipped.
+* `-f`, `--force`: Overwrite existing files when a `File` or `Moved File` action targets a path that already exists as a file. Without this flag, existing files will be skipped. This flag does not allow replacing a directory with a file.
 * `-h`, `--help`: Print help information.
 * `-V`, `--version`: Print version information.
 
 ## Input Markdown Format
 
-The processor identifies actions based on specific header patterns immediately preceding a fenced code block (for `File` actions) or standing alone (for `Deleted File` actions).
+The processor identifies actions based on specific header patterns.
 
 ### Action Headers
 
@@ -103,22 +104,11 @@ fn main() {
 ```
 ````
 
-**Example (Backtick Path):**
-
-````markdown
-`config.toml`
-
-```toml
-[settings]
-enabled = true
-```
-````
-
 **2. `Deleted File` Actions:**
 
-These headers define files to be deleted.
+These headers define files to be deleted. They should *not* be followed by a code block unless using the special case below.
 
-* **Standalone Headers:** These headers should *not* be followed by a code block.
+* **Standalone Headers:**
   * `## Deleted File: path/to/old/file.log`
   * `**Deleted File: path/to/old/file.log**`
 
@@ -132,11 +122,27 @@ path/inside/block_to_delete.tmp
 ```
 ````
 
-**3. Internal Comment Headers (Inside Code Blocks):**
+**3. `Moved File` Actions:**
 
-These headers can appear on the *first line* inside a code block to define the file path.
+These headers define files to be moved. They should *not* be followed by a code block. The keyword " to " (case-sensitive, with spaces) separates the source and destination paths.
 
-* `// File: path/to/file.ext`: The header line itself is **excluded** from the file content. Supports paths in backticks (`// File:`path with spaces.txt``).
+* **Standalone Headers:**
+  * `## Moved File: old/path/file.txt to new/path/file.txt`
+  * `**Moved File: old/path/file.txt to new/path/file.txt**`
+* If a path segment itself contains " to ", that segment must be enclosed in backticks:
+  * `## Moved File: \`archive/file with to in name.log\` to archive/renamed_file.log`
+  * `## Moved File: old/path.txt to \`new path with to in name.txt\``
+
+**Example (Moved File):**
+````markdown
+## Moved File: temp/report.docx to final/official_report.docx
+````
+
+**4. Internal Comment Headers (Inside Code Blocks for `File` actions):**
+
+These headers can appear on the *first line* inside a code block to define the file path for a `File` action.
+
+* `// File: path/to/file.ext`: The header line itself is **excluded** from the file content. Supports paths in backticks (`// File:\`path with spaces.txt\``).
 
     ```javascript
     // File: utils/helper.js
@@ -146,59 +152,63 @@ These headers can appear on the *first line* inside a code block to define the f
     module.exports = { greet };
     ```
 
-    *(Resulting `utils/helper.js` will not contain the `// File:` line)*
-
-* `// path/to/file.ext`: The header line is **included** in the file content. This is useful for self-documenting scripts.
+* `// path/to/file.ext`: The header line is **included** in the file content.
 
     ```javascript
     // scripts/run_analysis.js
     console.log("Running analysis...")
-    ... rest of script
     ```
 
-    *(Resulting `scripts/run_analysis.js` will contain the `// scripts/...` line)*
+    *Heuristics apply to avoid misinterpreting comments as paths.*
 
-    *Heuristics:* To avoid misinterpreting actual comments or strings as headers:
-  * Lines starting `//` (with a space) are only treated as paths if they contain typical path characters (`/`, `\`, `.`). Otherwise, they are treated as regular comments.
-  * Lines matching comment patterns (`#`, `--`, `;`, etc.) or simple string literal patterns (`"..."`, `'...'`, `` `...` ``) are ignored even if they match a header format internally.
+**5. Wrapped Headers:**
 
-**4. Wrapped Headers:**
+A header can be placed inside a ` ```markdown ` or ` ```md ` block.
+* For `File` actions, it applies to the *next adjacent* code block.
+* For `Deleted File` or `Moved File` actions, it's a standalone action.
 
-A header can be placed inside a ` ```markdown ` or ` ```md ` block, and it will apply to the *next adjacent* code block (only whitespace allowed between the blocks). This is useful for complex content or when the header itself contains characters that interfere with markdown.
-
-* **Create:**
+* **Create Example:**
 
     ````markdown
+    ```markdown
     ## File: complex_config.yaml
+    ```
 
     ```yaml
     # This is the actual content
     settings:
       feature_a: true
-      nested:
-        value: 123
     ```
     ````
 
-* **Delete:**
+* **Delete Example:**
 
     ````markdown
+    ```markdown
     **Deleted File: legacy_script.sh**
-
+    ```
     *(No following code block needed for delete)*
+    ````
+
+* **Move Example:**
+    ````markdown
+    ```markdown
+    ## Moved File: staging/data.csv to processed/data.csv
+    ```
+    *(No following code block needed for move)*
     ````
 
 ### Path Handling and Safety
 
 * Paths specified in headers are treated as relative to the `--output-dir`.
-* Parent directories are created automatically as needed.
-* **Safety:** The tool prevents writing outside the resolved base output directory. Paths containing `..` that would escape the base directory will cause the action to fail safely.
+* Parent directories are created automatically as needed for `File` actions and for the destination of `Moved File` actions.
+* **Safety:** The tool prevents writing or moving files outside the resolved base output directory. Paths containing `..` that would escape the base directory will cause the action to fail safely.
 * Paths containing invalid components (like `//` or trailing `/`) will be skipped.
 
-### Content Handling
+### Content Handling (for `File` actions)
 
-* The *entire* content within the fenced code block (excluding the fences themselves) is written to the file.
-* A trailing newline (`\n`) is added to the file content if it doesn't already end with one. This ensures POSIX-compatible text files.
+* The *entire* content within the fenced code block (excluding the fences themselves and certain internal headers) is written to the file.
+* A trailing newline (`\n`) is added to the file content if it doesn't already end with one.
 
 ## Examples
 
@@ -207,42 +217,34 @@ A header can be placed inside a ` ```markdown ` or ` ```md ` block, and it will 
 ````markdown
 # Example Project Structure
 
-This file defines a simple project.
-
 ## File: src/main.py
-
 ```python
 # Main application script
-# // File: src/utils.py (This is just a comment, ignored)
 import utils
-
-def main():
-    print("Starting app...")
-    utils.helper()
-    print("App finished.")
-
-if __name__ == "__main__":
-    main()
+def main(): utils.helper()
+if __name__ == "__main__": main()
 ```
 
 ## File: src/utils.py
-
 ```python
 # Utility functions
-def helper():
-    print("Helper function called.")
+def helper(): print("Helper function called.")
+```
 
+## File: temp/draft.txt
+```
+This is a draft file that will be moved.
 ```
 
 **Deleted File: old_data.csv**
 
 `README.md`
-
 ```markdown
 # My Project
-
 Generated by Strux.
 ```
+
+## Moved File: temp/draft.txt to docs/final_draft.txt
 
 ```md
 ## Deleted File: temp/to_delete.log
@@ -253,7 +255,6 @@ Generated by Strux.
 *.pyc
 __pycache__/
 ```
-
 ````
 
 **Command:**
@@ -270,16 +271,19 @@ strux -o my_project example.md
 my_project/
 ├── .gitignore
 ├── README.md
+├── docs/
+│   └── final_draft.txt  # Moved from temp/draft.txt
 └── src/
     ├── main.py
     └── utils.py
 ```
 
-* `my_project/src/main.py` contains the Python code (without the `// File:` comment line).
-* `my_project/src/utils.py` contains its Python code.
-* `my_project/README.md` contains `# My Project\n\nGenerated by Strux.\n`.
-* `my_project/.gitignore` contains `*.pyc\n__pycache__/\n`.
-* Any pre-existing `my_project/old_data.csv` or `my_project/temp/to_delete.log` would be deleted.
+* `my_project/src/main.py` and `my_project/src/utils.py` contain their Python code.
+* `my_project/README.md` contains its content.
+* `my_project/.gitignore` contains its content.
+* `my_project/docs/final_draft.txt` contains "This is a draft file that will be moved.\n" (moved from `my_project/temp/draft.txt`).
+* The original `my_project/temp/draft.txt` is gone as it was moved.
+* Any pre-existing `my_project/old_data.csv` or `my_project/temp/to_delete.log` (if they existed in the output directory before the run) would be deleted.
 
 ## Development
 
@@ -288,21 +292,10 @@ my_project/
 * Rust & Cargo ([https://rustup.rs/](https://rustup.rs/))
 * `pre-commit` ([https://pre-commit.com/](https://pre-commit.com/))
 
-    ```bash
-    pip install pre-commit
-    # or: brew install pre-commit
-    ```
-
 ### Setup
 
 1. Clone the repository.
-2. Install pre-commit hooks:
-
-    ```bash
-    pre-commit install
-    ```
-
-    This will ensure that formatting (`cargo fmt`), linting (`cargo clippy`), tests (`cargo test`), and other checks run automatically before each commit.
+2. Install pre-commit hooks: `pre-commit install`
 
 ### Building
 
@@ -314,44 +307,13 @@ cargo build --release # Release build
 ### Testing
 
 ```bash
-cargo test          # Run all tests (unit, integration, documentation)
+cargo test          # Run all tests
 ```
 
 ### Pre-commit Hooks
 
-This project uses `pre-commit` to automatically run code quality checks and apply fixes (formatting, linting, tests) before each commit. This helps maintain code consistency and catch issues early.
-
-**Usage:**
-
-Once installed (`pre-commit install`), `pre-commit` will run automatically when you run `git commit`.
-
-* **Automatic Fixes:** Hooks for `cargo fmt`, `cargo fix`, and `cargo clippy --fix` will attempt to automatically fix formatting issues, compiler suggestions, and simple lints.
-* **Commit Flow:**
-    1. You run `git commit`.
-    2. `pre-commit` runs the hooks.
-    3. If any fixing hook modifies files (e.g., applies formatting), the commit will be **aborted**.
-    4. You will see messages indicating which files were changed. **Review the changes** and use `git add <modified files>` to stage them.
-    5. Run `git commit` **again**.
-    6. This time, the fixing hooks should find nothing to change. The checking hooks (`clippy`'s check part, `cargo test`) will then run.
-    7. If all checks pass, the commit succeeds.
-* **Manual Fixes:** If `cargo clippy` or `cargo test` fail after the automatic fixing stage, you will need to manually fix the reported errors, `git add` your changes, and commit again.
-
-**Manual Run:**
-
-You can run all checks and fixes manually on all files at any time:
-
-```bash
-pre-commit run --all-files
-```
-
-**Skipping Checks (Use with Caution):**
-
-If you need to bypass the pre-commit checks for a specific commit (e.g., work-in-progress), you can use the `--no-verify` flag:
-
-```bash
-git commit --no-verify -m "Your commit message"
-```
+This project uses `pre-commit` for automated code quality checks (formatting, linting, tests) before each commit.
 
 ## Commit Messages
 
-This project follows the [Conventional Commits specification](https://www.conventionalcommits.org/). Please adhere to these guidelines when contributing. See [COMMIT.md](COMMIT.md) for detailed rules and examples specific to this project.
+This project follows the [Conventional Commits specification](https://www.conventionalcommits.org/). See [COMMIT.md](COMMIT.md) for details.

@@ -2,7 +2,7 @@
 
 use crate::core_types::Action;
 use crate::errors::ParseError;
-use crate::parser::header_utils::{extract_action_path_from_captures, get_action_type};
+use crate::parser::header_utils::{extract_header_action_details, get_action_type};
 use crate::parser::path_utils::validate_path_format;
 use crate::parser::regex::HEADER_REGEX;
 use std::collections::HashSet;
@@ -10,7 +10,7 @@ use std::collections::HashSet;
 // Declare submodules for Pass 2
 mod standalone_delete;
 
-/// Executes Pass 2: Find standalone Delete headers and warn about orphaned Create.
+/// Executes Pass 2: Find standalone Delete/Move headers and warn about orphaned Create.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn run_pass2(
     content_to_parse: &str,
@@ -22,15 +22,12 @@ pub(crate) fn run_pass2(
     for caps in HEADER_REGEX.captures_iter(content_to_parse) {
         let header_match = caps.get(0).unwrap(); // The whole match
         let header_start_rel = header_match.start();
-        // Removed header_text debug variable
         let original_header_pos = header_start_rel + parse_offset;
 
-        // Skip if this header's original start position was already processed in Pass 1
         if processed_header_starts.contains(&original_header_pos) {
             continue;
         }
 
-        // Skip if this header falls within a code block range processed by Pass 1
         let is_inside_block =
             processed_code_block_ranges
                 .iter()
@@ -41,42 +38,62 @@ pub(crate) fn run_pass2(
             continue;
         }
 
-        // Try to extract action and path.
-        let extraction_result = extract_action_path_from_captures(&caps);
-
-        // Removed debug logs
-
-        if let Some((action_word, path)) = extraction_result {
-            // Path extraction succeeded, proceed with validation and action handling for Pass 2.
-            if validate_path_format(&path).is_err() {
+        if let Some(details) = extract_header_action_details(&caps) {
+            // Validate primary path
+            if validate_path_format(&details.path).is_err() {
                 eprintln!(
-                    "Warning: Invalid path format in standalone header '{}'. Skipping.",
-                    header_match.as_str().trim()
+                    "Warning: Invalid path format in standalone header '{}' (path: '{}'). Skipping.",
+                    header_match.as_str().trim(),
+                    details.path
                 );
                 continue;
             }
+            // Validate destination path if it's a Move action
+            if let Some(ref dest_path_val) = details.dest_path {
+                if validate_path_format(dest_path_val).is_err() {
+                    eprintln!(
+                        "Warning: Invalid destination path format in standalone header '{}' (dest_path: '{}'). Skipping.",
+                        header_match.as_str().trim(),
+                        dest_path_val
+                    );
+                    continue;
+                }
+            }
 
-            if let Some(action_type) = get_action_type(&action_word) {
+            if let Some(action_type) = get_action_type(&details.action_word) {
                 match action_type {
                     crate::core_types::ActionType::Delete => {
-                        // Only process standalone deletes found here (path must be in header).
                         standalone_delete::handle_standalone_delete(
                             original_header_pos,
-                            &path,
+                            &details.path,
                             actions_with_pos,
                         );
                     }
                     crate::core_types::ActionType::Create => {
-                        // Warn about orphaned Create headers
                         eprintln!(
                             "Warning: Found header '{}' for path '{}' at original pos {} without an associated code block. Skipping.",
-                            header_match.as_str().trim(), path, original_header_pos
+                            header_match.as_str().trim(), details.path, original_header_pos
                         );
+                    }
+                    crate::core_types::ActionType::Move => {
+                        // Add Move action
+                        println!(
+                            "  - Found standalone MOVE action for: '{}' to '{}' at original pos {}",
+                            details.path,
+                            details.dest_path.as_ref().unwrap_or(&String::new()), // Should always be Some for Move
+                            original_header_pos
+                        );
+                        let action = Action {
+                            action_type: crate::core_types::ActionType::Move,
+                            path: details.path,
+                            dest_path: details.dest_path, // This will be Some if action_type is Move
+                            content: None,
+                            original_pos: original_header_pos,
+                        };
+                        actions_with_pos.push((original_header_pos, action));
                     }
                 }
             }
-        } else {
-            // Extraction failed or path was empty.
         }
     }
     Ok(())

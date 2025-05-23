@@ -4,7 +4,7 @@
 use super::summary_updater::*; // Use the specific module name
 
 // Bring items from other modules needed for tests into scope
-use crate::core_types::{CreateStatus, DeleteStatus, Summary};
+use crate::core_types::{CreateStatus, DeleteStatus, MoveStatus, Summary};
 use crate::errors::ProcessError;
 use std::io;
 use std::path::PathBuf;
@@ -36,6 +36,24 @@ fn test_update_summary_delete() {
     assert_eq!(summary.skipped_isdir_delete, 1);
     update_summary_delete(&mut summary, DeleteStatus::SkippedOtherType);
     assert_eq!(summary.skipped_other_type, 1);
+    assert_eq!(summary.created, 0); // Ensure others unchanged
+}
+
+#[test]
+fn test_update_summary_move() {
+    let mut summary = empty_summary();
+    update_summary_move(&mut summary, MoveStatus::Moved);
+    assert_eq!(summary.moved, 1);
+    update_summary_move(&mut summary, MoveStatus::MovedOverwritten);
+    assert_eq!(summary.moved_overwritten, 1);
+    update_summary_move(&mut summary, MoveStatus::SkippedSourceNotFound);
+    assert_eq!(summary.skipped_move_src_not_found, 1);
+    update_summary_move(&mut summary, MoveStatus::SkippedSourceIsDir);
+    assert_eq!(summary.skipped_move_src_is_dir, 1);
+    update_summary_move(&mut summary, MoveStatus::SkippedDestinationExists);
+    assert_eq!(summary.skipped_move_dst_exists, 1);
+    update_summary_move(&mut summary, MoveStatus::SkippedDestinationIsDir);
+    assert_eq!(summary.skipped_move_dst_isdir, 1);
     assert_eq!(summary.created, 0); // Ensure others unchanged
 }
 
@@ -99,6 +117,15 @@ fn test_update_summary_error() {
     assert_eq!(summary.failed_parent_isdir, 1);
 
     summary = empty_summary();
+    update_summary_error(
+        &mut summary,
+        ProcessError::MoveSourceIsDir {
+            path: PathBuf::new(),
+        },
+    );
+    assert_eq!(summary.skipped_move_src_is_dir, 1); // Check specific mapping
+
+    summary = empty_summary();
     update_summary_error(&mut summary, ProcessError::UnknownAction);
     assert_eq!(summary.error_other, 1);
 
@@ -112,4 +139,5 @@ fn test_update_summary_error() {
     // Ensure others unchanged
     assert_eq!(summary.created, 0);
     assert_eq!(summary.deleted, 0);
+    assert_eq!(summary.moved, 0);
 }
