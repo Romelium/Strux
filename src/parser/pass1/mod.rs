@@ -6,18 +6,20 @@ use crate::parser::regex::OPENING_FENCE_REGEX;
 use std::collections::HashSet;
 
 // Declare submodules for Pass 1
-mod action_adder; // NEW MODULE
-mod action_determiner; // ADDED
+mod action_adder;
+mod action_determiner;
 mod block_processor;
 mod external_delete_special;
 mod external_header;
 mod fence_finder;
+#[cfg(test)] // Conditionally compile the test module
+mod fence_finder_tests; // ADDED test module
 mod internal_comment_handler;
 mod internal_header;
 mod internal_standard_handler;
-mod types; // ADDED
+mod types;
 mod utils;
-mod wrapped_create_handler; // NEW MODULE
+mod wrapped_create_handler;
 mod wrapped_header;
 
 /// Executes Pass 1: Find code blocks and associate Create/Delete(special) actions.
@@ -29,25 +31,26 @@ pub(crate) fn run_pass1(
     processed_header_starts: &mut HashSet<usize>,
     processed_code_block_ranges: &mut HashSet<(usize, usize)>,
 ) -> Result<(), ParseError> {
-    // Use captures_iter to get named groups
-    for caps in OPENING_FENCE_REGEX.captures_iter(content_to_parse) {
-        // Get the full match for positional info
+    let mut current_search_pos = 0;
+    while let Some(caps) = OPENING_FENCE_REGEX.captures_at(content_to_parse, current_search_pos) {
         let full_match = caps.get(0).unwrap();
         let fence_start_pos = full_match.start(); // Relative to content_to_parse
 
         if utils::is_already_processed(fence_start_pos, processed_code_block_ranges) {
-            // This block was already processed as the content part of a wrapped header
-            println!(
-                "    Skipping fence at {} as it's within an already processed range.",
-                fence_start_pos + parse_offset
-            );
+            // This block was already processed (e.g. as content of a wrapped header)
+            // or its opening fence was part of a processed block.
+            // Advance search position past this opening fence's start to avoid re-matching it.
+            current_search_pos = fence_start_pos + 1;
+            // println!( // Optional debug
+            //     "    Skipping already processed or overlapping fence at relative pos {}. Advancing search to {}.",
+            //     fence_start_pos, current_search_pos
+            // );
             continue;
         }
 
-        let fence_end_pos = full_match.end();
-        // Get the captured fence characters using the name
+        let fence_end_pos = full_match.end(); // End of the opening fence line
         let fence_chars = caps.name("fence").unwrap().as_str();
-        let lang = caps.name("lang").map(|m| m.as_str().trim()).unwrap_or(""); // Get lang tag
+        let lang = caps.name("lang").map(|m| m.as_str().trim()).unwrap_or("");
 
         let closing_match_opt =
             fence_finder::find_closing_fence(content_to_parse, fence_chars, fence_end_pos);
@@ -58,13 +61,14 @@ pub(crate) fn run_pass1(
                 "Warning: Opening fence '{}' at original pos {} has no closing fence. Skipping.",
                 fence_chars, original_pos
             );
-            continue; // Skip this block entirely
+            current_search_pos = fence_end_pos; // Advance past this unclosed opening fence line
+            continue;
         }
         let closing_match = closing_match_opt.unwrap();
 
         let block_content_start = fence_end_pos;
         let block_content_end = closing_match.start();
-        let block_outer_end = closing_match.end();
+        let block_outer_end = closing_match.end(); // End of the closing fence line
         let original_block_start = fence_start_pos + parse_offset;
 
         println!(
@@ -75,7 +79,6 @@ pub(crate) fn run_pass1(
             block_outer_end + parse_offset
         );
 
-        // Process the single block and its potential associated header
         block_processor::process_single_block(
             content_to_parse,
             parse_offset,
@@ -89,6 +92,8 @@ pub(crate) fn run_pass1(
             processed_header_starts,
             processed_code_block_ranges,
         )?;
-    } // End of loop over fences
+
+        current_search_pos = block_outer_end; // Advance search to after the current block
+    }
     Ok(())
 }

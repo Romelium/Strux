@@ -17,9 +17,11 @@ mod duplicates;
 mod errors;
 #[path = "processor/interactions.rs"]
 mod interactions;
+#[path = "processor/meta_readme.rs"] // ADDED
+mod meta_readme;
 #[path = "processor/mixed_actions.rs"]
 mod mixed_actions;
-#[path = "processor/move_file.rs"] // ADDED
+#[path = "processor/move_file.rs"]
 mod move_file;
 #[path = "processor/multi_create.rs"]
 mod multi_create;

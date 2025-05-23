@@ -15,7 +15,7 @@ pub static HEADER_REGEX: Lazy<Regex> = Lazy::new(|| {
         // **Action: content**: Capture content greedily, allow optional trailing text after **.
         // ## Action: content: Capture content greedily, no optional trailing text needed here (extractor handles).
         // Backtick versions remain specific but allow optional trailing text after marker.
-        r#"(?m)^(?:\*\*\s*(?P<action_word_bold>{actions}):\s*(?P<content_bold>.+?)\s*\*\*(?:[^\n]*)?$|##\s+`(?P<path_hash_backtick>[^`\n]+?)`(?:[^\n]*)?$|##\s+(?P<action_word_hash>{actions}):\s*(?P<content_hash>.*)$|`(?P<path_backtick_only>[^`\n]+?)`(?:[^\n]*)?$|(?P<num>\d+)\.\s+`(?P<path_numbered_backtick>[^`\n]+?)`(?:[^\n]*)?$|\*\*\s*`(?P<path_bold_backtick>[^`\n]+?)`\s*\*\*(?:[^\n]*)?$)"#,
+        "(?m)^(?:\\*\\*\\s*(?P<action_word_bold>{actions}):\\s*(?P<content_bold>.+?)\\s*\\*\\*(?:[^\\n]*)?$|##\\s+`(?P<path_hash_backtick>[^`\\n]+?)`(?:[^\\n]*)?$|##\\s+(?P<action_word_hash>{actions}):\\s*(?P<content_hash>.*)$|`(?P<path_backtick_only>[^`\\n]+?)`(?:[^\\n]*)?$|(?P<num>\\d+)\\.\\s+`(?P<path_numbered_backtick>[^`\\n]+?)`(?:[^\\n]*)?$|\\*\\*\\s*`(?P<path_bold_backtick>[^`\\n]+?)`\\s*\\*\\*(?:[^\\n]*)?$)",
         actions = actions // Argument for format!
     );
     // Explanation of changes:
@@ -37,13 +37,9 @@ pub static HEADER_REGEX: Lazy<Regex> = Lazy::new(|| {
 
 // Regex to find the START of a fenced code block.
 pub static OPENING_FENCE_REGEX: Lazy<Regex> = Lazy::new(|| {
-    // Use raw string literal
     // Handle optional carriage return for CRLF compatibility
-    Regex::new(r#"(?m)^\s*(?P<fence>```|````)(?P<lang>[^\n\r]*)(\r?\n)"#)
+    Regex::new("(?m)^\\s*(?P<fence>```|````)(?P<lang>[^\\n\\r]*)(\\r?\\n)")
         .expect("Failed to compile OPENING_FENCE_REGEX")
 });
 
 // Note: Closing fence regex is generated dynamically in pass1.rs based on the opening fence.
-
-// --- REMOVED DEBUG FUNCTION ---
-// debug_hash_regexes() removed to reduce line count.

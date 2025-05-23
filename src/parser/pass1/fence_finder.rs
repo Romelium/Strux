@@ -1,83 +1,178 @@
 //! Utility functions for finding matching fences.
 
-use regex::{Match, Regex}; // Add Match
+use regex::{Match, RegexBuilder};
+
+// Enum to represent the type of fence event
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+enum EventType {
+    TargetClose, // Highest priority for tie-breaking
+    OtherOpen,
+    TargetOpen, // Lowest priority if at same location as TargetClose
+}
+
+// Struct to hold event details for sorting
+#[derive(Debug)]
+struct Event<'a> {
+    pos: usize,
+    priority_order: EventType, // Lower value = higher processing priority
+    match_obj: Match<'a>,
+    actual_event_type: EventType, // To know what action to take
+}
 
 /// Finds the matching closing fence for a given opening fence, handling nesting.
-///
-/// Args:
-///   content: The string content to search within.
-///   fence_chars: The exact characters of the fence (e.g., "```" or "````").
-///   search_start_pos: The byte position in `content` *after* the opening fence line.
-///
-/// Returns:
-///   Option<Match<'a>>: The match object for the correct closing fence line, or None if not found.
+/// This function now also correctly skips over nested blocks that use a *different*
+/// type of fence (e.g., skips a ````...```` block when searching for ```` ``` ```` closers).
 pub(crate) fn find_closing_fence<'a>(
     content: &'a str,
-    fence_chars: &str,
+    target_fence_chars: &str, // The type of fence we are trying to close (e.g., "```")
     search_start_pos: usize,
 ) -> Option<Match<'a>> {
-    // Pattern for the closing fence: start of line, optional whitespace, exact fence chars, optional whitespace, end of line.
-    let closing_pattern = format!(r"(?m)^\s*{}\s*$", regex::escape(fence_chars));
-    let closing_regex = Regex::new(&closing_pattern).ok()?; // Handle potential regex compilation error
+    println!(
+        "[find_closing_fence] START: target_fence_chars='{}', search_start_pos={}",
+        target_fence_chars, search_start_pos
+    );
 
-    // Pattern for finding *any* subsequent opening fence of the *same type*.
-    // Matches start of line, optional whitespace, exact fence chars, optional language tag, newline.
-    // This helps us count nested blocks correctly.
-    // Handle optional carriage return for CRLF compatibility
-    let opening_pattern = format!(r"(?m)^\s*{}(?:[^\n\r]*)(\r?\n)", regex::escape(fence_chars));
-    let opening_regex = Regex::new(&opening_pattern).ok()?;
+    let escaped_target_fence = regex::escape(target_fence_chars);
+    let target_opening_pattern = format!(r"(?m)^\s*{}([^`\n\r]*)(\r?\n)", escaped_target_fence);
+    let target_closing_pattern = format!(r"(?m)^[ \t]*{}[ \t]*$", escaped_target_fence);
 
-    let mut level = 1; // Start at level 1 for the initial opening fence
+    let other_fence_chars = if target_fence_chars == "```" {
+        "````"
+    } else {
+        "```"
+    };
+    let escaped_other_fence = regex::escape(other_fence_chars);
+    let other_opening_pattern = format!(r"(?m)^\s*{}([^`\n\r]*)(\r?\n)", escaped_other_fence);
+
+    let target_opening_re = RegexBuilder::new(&target_opening_pattern)
+        .crlf(true)
+        .build()
+        .unwrap();
+    let target_closing_re = RegexBuilder::new(&target_closing_pattern)
+        .crlf(true)
+        .build()
+        .unwrap();
+    let other_opening_re = RegexBuilder::new(&other_opening_pattern)
+        .crlf(true)
+        .build()
+        .unwrap();
+
+    let mut level = 1;
     let mut current_pos = search_start_pos;
 
     loop {
-        // Find the next potential opening and closing fences from the current position
-        let next_opening = opening_regex.find_at(content, current_pos);
-        let next_closing = closing_regex.find_at(content, current_pos);
+        println!(
+            "[find_closing_fence] LOOP: current_pos={}, level={}",
+            current_pos, level
+        );
 
-        match (next_opening, next_closing) {
-            (Some(open_match), Some(close_match)) => {
-                // Both found, determine which comes first
-                if open_match.start() < close_match.start() {
-                    // Opening fence comes first, increment level
-                    level += 1;
-                    current_pos = open_match.end(); // Continue search after this opening fence
-                } else {
-                    // Closing fence comes first, decrement level
-                    level -= 1;
-                    if level == 0 {
-                        // This is the matching closing fence for the initial opening fence
-                        return Some(close_match);
-                    }
-                    // It closed a nested block, continue search after this closing fence
-                    current_pos = close_match.end();
-                }
-            }
-            (None, Some(close_match)) => {
-                // Only a closing fence found
+        let mut candidates: Vec<Event> = Vec::new();
+
+        if let Some(m) = target_closing_re.find_at(content, current_pos) {
+            candidates.push(Event {
+                pos: m.start(),
+                priority_order: EventType::TargetClose,
+                match_obj: m,
+                actual_event_type: EventType::TargetClose,
+            });
+        }
+        if let Some(m) = other_opening_re.find_at(content, current_pos) {
+            candidates.push(Event {
+                pos: m.start(),
+                priority_order: EventType::OtherOpen,
+                match_obj: m,
+                actual_event_type: EventType::OtherOpen,
+            });
+        }
+        if let Some(m) = target_opening_re.find_at(content, current_pos) {
+            candidates.push(Event {
+                pos: m.start(),
+                priority_order: EventType::TargetOpen,
+                match_obj: m,
+                actual_event_type: EventType::TargetOpen,
+            });
+        }
+
+        if candidates.is_empty() {
+            println!(
+                "[find_closing_fence] NO MORE EVENTS: No candidates found. level={}",
+                level
+            );
+            return None;
+        }
+
+        // Sort by position, then by priority_order (lower enum discriminant means higher priority)
+        candidates.sort_by(|a, b| {
+            a.pos
+                .cmp(&b.pos)
+                .then_with(|| a.priority_order.cmp(&b.priority_order))
+        });
+
+        let earliest_event = &candidates[0];
+        let current_event_match = earliest_event.match_obj;
+
+        println!(
+            "[find_closing_fence]   Selected Event: {:?}, type: {:?}, match: {:?}",
+            earliest_event.priority_order,
+            earliest_event.actual_event_type,
+            (
+                current_event_match.start(),
+                current_event_match.end(),
+                current_event_match.as_str()
+            )
+        );
+
+        match earliest_event.actual_event_type {
+            EventType::TargetClose => {
+                println!(
+                    "[find_closing_fence]   Event Action: Target Close at {}-{}",
+                    current_event_match.start(),
+                    current_event_match.end()
+                );
                 level -= 1;
                 if level == 0 {
-                    // This is the matching closing fence
-                    return Some(close_match);
+                    println!(
+                        "[find_closing_fence] MATCH FOUND: level=0, match_pos={}, match_str='{:?}'",
+                        current_event_match.start(),
+                        current_event_match.as_str()
+                    );
+                    return Some(current_event_match);
                 }
-                // This case implies unbalanced fences if level != 0, but we continue searching
-                // in case there's another closing fence later.
-                current_pos = close_match.end();
+                current_pos = current_event_match.end();
                 if level < 0 {
-                    // Should ideally not happen with well-formed markdown, but indicates an issue.
-                    // Treat as unclosed for safety.
+                    println!("[find_closing_fence] ERROR: Level < 0 (too many target closers). Returning None.");
                     return None;
                 }
             }
-            (Some(open_match), None) => {
-                // Only an opening fence found, means the block is definitely unclosed by the end
-                // Increment level and continue search (though it will likely end in None)
+            EventType::TargetOpen => {
+                println!(
+                    "[find_closing_fence]   Event Action: Target Open at {}-{}",
+                    current_event_match.start(),
+                    current_event_match.end()
+                );
                 level += 1;
-                current_pos = open_match.end();
+                current_pos = current_event_match.end();
             }
-            (None, None) => {
-                // No more opening or closing fences found, the block is unclosed
-                return None;
+            EventType::OtherOpen => {
+                println!(
+                    "[find_closing_fence]   Event Action: Other Open ('{}') at {}-{}",
+                    other_fence_chars,
+                    current_event_match.start(),
+                    current_event_match.end()
+                );
+                if let Some(other_close_match) =
+                    find_closing_fence(content, other_fence_chars, current_event_match.end())
+                {
+                    println!(
+                        "[find_closing_fence]     Skipped other block from {} to {}",
+                        current_event_match.start(),
+                        other_close_match.end()
+                    );
+                    current_pos = other_close_match.end();
+                } else {
+                    println!("[find_closing_fence]     Malformed/unclosed 'other' block starting at {}. Treating as text and continuing search for target '{}'.", current_event_match.start(), target_fence_chars);
+                    current_pos = current_event_match.end();
+                }
             }
         }
     }
