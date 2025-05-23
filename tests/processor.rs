@@ -5,6 +5,8 @@
 mod common;
 
 // Declare the specific test modules (tests/processor/*.rs)
+#[path = "processor/append_prepend.rs"] // ADDED
+mod append_prepend;
 #[path = "processor/base_dir.rs"]
 mod base_dir;
 #[path = "processor/create.rs"]
@@ -17,7 +19,7 @@ mod duplicates;
 mod errors;
 #[path = "processor/interactions.rs"]
 mod interactions;
-#[path = "processor/meta_readme.rs"] // ADDED
+#[path = "processor/meta_readme.rs"]
 mod meta_readme;
 #[path = "processor/mixed_actions.rs"]
 mod mixed_actions;

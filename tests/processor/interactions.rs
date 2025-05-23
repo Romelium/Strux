@@ -17,7 +17,9 @@ fn test_process_create_then_delete() {
     temp_dir
         .child("temp.txt")
         .assert(predicate::path::missing());
-    assert_summary(&summary, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -35,7 +37,9 @@ fn test_process_delete_then_create() {
         .child("recreate.txt")
         .assert(predicate::path::is_file());
     temp_dir.child("recreate.txt").assert("New content\n");
-    assert_summary(&summary, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -48,7 +52,9 @@ fn test_process_create_then_move() {
         .child("source.txt")
         .assert(predicate::path::missing());
     temp_dir.child("dest.txt").assert("Content to move\n");
-    assert_summary(&summary, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -63,7 +69,9 @@ fn test_process_move_then_delete() {
     temp_dir
         .child("intermediate.txt")
         .assert(predicate::path::missing());
-    assert_summary(&summary, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -76,7 +84,9 @@ fn test_process_move_then_create_same_path_no_force() {
         .child("source_for_move.txt")
         .assert(predicate::path::missing());
     temp_dir.child("target.txt").assert("Move content"); // Moved content wins
-    assert_summary(&summary, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -91,5 +101,52 @@ fn test_process_move_then_create_same_path_with_force() {
     temp_dir
         .child("target_force.txt")
         .assert("Create content, should overwrite moved file\n"); // Create content wins due to force
-    assert_summary(&summary, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
+}
+
+#[test]
+fn test_process_create_then_append() {
+    let temp_dir = setup_temp_dir();
+    let md = "\n## File: data.log\n```\nInitial line.\n```\n\n## Append File: data.log\n```\nAppended line.\n```\n";
+    let (summary, _) = run_processor(md, &temp_dir, false).expect("Processing failed");
+
+    temp_dir
+        .child("data.log")
+        .assert("Initial line.\nAppended line.\n");
+    // 1 create, 1 append
+    assert_summary(
+        &summary, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
+}
+
+#[test]
+fn test_process_create_then_prepend() {
+    let temp_dir = setup_temp_dir();
+    let md = "\n## File: header.txt\n```\nOriginal content.\n```\n\n## Prepend File: header.txt\n```\nPrepended header.\n```\n";
+    let (summary, _) = run_processor(md, &temp_dir, false).expect("Processing failed");
+
+    temp_dir
+        .child("header.txt")
+        .assert("Prepended header.\nOriginal content.\n");
+    // 1 create, 1 prepend
+    assert_summary(
+        &summary, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
+}
+
+#[test]
+fn test_process_append_then_prepend() {
+    let temp_dir = setup_temp_dir_with_files(&[("base.txt", "Base line.\n")]);
+    let md = "\n## Append File: base.txt\n```\nAppended line.\n```\n\n## Prepend File: base.txt\n```\nPrepended line.\n```\n";
+    let (summary, _) = run_processor(md, &temp_dir, false).expect("Processing failed");
+
+    temp_dir
+        .child("base.txt")
+        .assert("Prepended line.\nBase line.\nAppended line.\n");
+    // 1 append, 1 prepend
+    assert_summary(
+        &summary, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }

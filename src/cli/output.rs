@@ -15,6 +15,11 @@ pub fn print_summary(summary: &Summary, resolved_base: &Path) {
         "  Files overwritten (--force):        {}",
         summary.overwritten
     );
+    println!("  Files appended:                     {}", summary.appended); // New
+    println!(
+        "  Files prepended:                    {}",
+        summary.prepended
+    ); // New
     println!("  Files deleted:                      {}", summary.deleted);
     println!("  Files moved:                        {}", summary.moved);
     println!(
@@ -62,6 +67,14 @@ pub fn print_summary(summary: &Summary, resolved_base: &Path) {
     println!(
         "  Failed (create, target is dir):     {}",
         summary.failed_isdir_create
+    );
+    println!(
+        "  Failed (append, target is dir):     {}", // New
+        summary.failed_isdir_append
+    );
+    println!(
+        "  Failed (prepend, target is dir):    {}", // New
+        summary.failed_isdir_prepend
     );
     println!(
         "  Failed (create, parent is file):    {}",

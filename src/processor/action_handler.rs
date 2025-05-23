@@ -2,7 +2,7 @@
 
 use crate::core_types::{Action, ActionType, Summary};
 use crate::errors::ProcessError;
-use crate::processor::{create, delete, move_file, safety, summary_updater}; // Added move_file
+use crate::processor::{append, create, delete, move_file, prepend, safety, summary_updater}; // Added append, prepend
 use std::path::{Path, PathBuf};
 
 /// Processes a single action item, handling path validation, safety, and dispatching.
@@ -21,7 +21,7 @@ pub(crate) fn process_single_action(
 
     // --- Path Validation and Setup ---
     // For Move, we need to validate and resolve both source and destination paths.
-    // For Create/Delete, only item.path is relevant here.
+    // For Create/Delete/Append/Prepend, only item.path is relevant here.
 
     let (log_path_display, validated_primary_path, validated_secondary_path_opt) = match action_type
     {
@@ -55,7 +55,7 @@ pub(crate) fn process_single_action(
             )
         }
         _ => {
-            // Create or Delete
+            // Create, Delete, Append, or Prepend
             println!(
                 "\n[{}/{}] Action: {:?}, Path: '{}'",
                 item_index + 1,
@@ -76,7 +76,7 @@ pub(crate) fn process_single_action(
     };
 
     // --- Safety Check ---
-    // Check primary path (source for Move, target for Create/Delete)
+    // Check primary path (source for Move, target for Create/Delete/Append/Prepend)
     if let Err(e) = safety::ensure_path_safe(resolved_base, &validated_primary_path) {
         eprintln!("Error processing action for '{}': {}", log_path_display, e);
         summary_updater::update_summary_error(summary, e);
@@ -122,6 +122,20 @@ pub(crate) fn process_single_action(
             )
             .map(|status| summary_updater::update_summary_move(summary, status))
         }
+        ActionType::Append => append::process_append(
+            item,
+            &validated_primary_path,
+            relative_path_str,
+            resolved_base,
+        )
+        .map(|status| summary_updater::update_summary_append(summary, status)),
+        ActionType::Prepend => prepend::process_prepend(
+            item,
+            &validated_primary_path,
+            relative_path_str,
+            resolved_base,
+        )
+        .map(|status| summary_updater::update_summary_prepend(summary, status)),
     };
 
     // --- Handle Errors from Action Handlers ---

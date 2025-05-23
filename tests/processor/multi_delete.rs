@@ -43,5 +43,7 @@ fn test_process_delete_multiple_files() {
         .child("new_file.txt")
         .assert("This should still be created.\n");
 
-    assert_summary(&summary, 1, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 1, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }

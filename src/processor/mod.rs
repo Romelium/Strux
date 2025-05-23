@@ -7,10 +7,12 @@ use std::path::Path;
 
 // Declare processor submodules
 mod action_handler;
-mod base_setup; // ADDED
+mod append; // ADDED
+mod base_setup;
 mod create;
 mod delete;
-mod move_file; // ADDED
+mod move_file;
+mod prepend; // ADDED
 mod safety;
 mod summary_updater;
 

@@ -160,10 +160,10 @@ fn test_parse_moved_file_path_containing_to_keyword_needs_backticks() {
     let actions_bad = parse_markdown(md_bad).expect("Parsing failed for bad 'to'");
     // The header_utils.rs logic will split by the first " to ".
     assert_eq!(actions_bad.len(), 1);
-    assert_eq!(actions_bad[0].path, "file with");
+    assert_eq!(actions_bad[0].path, "file with"); // This is what the current parser does
     assert_eq!(
         actions_bad[0].dest_path.as_deref(),
-        Some("in name.txt to new_name.txt")
+        Some("in name.txt to new_name.txt") // This is what the current parser does
     );
 
     let md_good = "\n## Moved File: `file with to in name.txt` to new_name.txt\n";
@@ -187,6 +187,18 @@ fn test_parse_moved_file_path_containing_to_keyword_needs_backticks() {
         ActionType::Move,
         "file with to in name.txt",
         Some("another to file.log"),
+        None,
+    );
+
+    let md_dest_ticked_with_to = "\n## Moved File: source.txt to `dest with to in name.txt`\n";
+    let actions_dest_ticked =
+        parse_markdown(md_dest_ticked_with_to).expect("Parsing failed for dest ticked with 'to'");
+    assert_eq!(actions_dest_ticked.len(), 1);
+    assert_action(
+        actions_dest_ticked.first(),
+        ActionType::Move,
+        "source.txt",
+        Some("dest with to in name.txt"),
         None,
     );
 }

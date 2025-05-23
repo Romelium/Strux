@@ -36,34 +36,48 @@ pub(crate) fn handle_internal_standard_header(
             return Ok(None);
         }
 
-        if let Some(action_type @ ActionType::Create) = get_action_type(&details.action_word) {
-            println!(
-                "    Found internal standard header: '{}' (Excluded from output)",
-                stripped_first_line
-            );
-            processed_header_starts.insert(header_original_pos);
-            let mut block_data = rest_content.to_string();
-            ensure_trailing_newline(&mut block_data);
-            let action = Action {
-                action_type,
-                path: details.path,
-                dest_path: None, // Create actions don't have dest_path
-                content: Some(block_data),
-                original_pos: 0,
-            };
-            println!(
-                "     -> Added {} action for '{}'",
-                format!("{:?}", action.action_type).to_uppercase(),
-                action.path
-            );
-            return Ok(Some((action, block_content_start)));
-        } else if get_action_type(&details.action_word) == Some(ActionType::Delete) {
-            println!(
-                "Info: Ignoring '{}:' header inside code block at original pos {}.",
-                ACTION_DELETED_FILE, header_original_pos
-            );
-            processed_header_starts.insert(header_original_pos);
-            return Ok(None);
+        if let Some(action_type_enum) = get_action_type(&details.action_word) {
+            match action_type_enum {
+                ActionType::Create | ActionType::Append | ActionType::Prepend => {
+                    println!(
+                        "    Found internal standard header: '{}' (Excluded from output)",
+                        stripped_first_line
+                    );
+                    processed_header_starts.insert(header_original_pos);
+                    let mut block_data = rest_content.to_string();
+                    ensure_trailing_newline(&mut block_data);
+                    let action = Action {
+                        action_type: action_type_enum,
+                        path: details.path,
+                        dest_path: None,
+                        content: Some(block_data),
+                        original_pos: 0,
+                    };
+                    println!(
+                        "     -> Added {} action for '{}'",
+                        format!("{:?}", action.action_type).to_uppercase(),
+                        action.path
+                    );
+                    return Ok(Some((action, block_content_start)));
+                }
+                ActionType::Delete => {
+                    println!(
+                        "Info: Ignoring '{}:' header inside code block at original pos {}.",
+                        ACTION_DELETED_FILE, header_original_pos
+                    );
+                    processed_header_starts.insert(header_original_pos);
+                    return Ok(None);
+                }
+                ActionType::Move => {
+                    // This should have been caught by `details.dest_path.is_some()` check.
+                    println!(
+                        "Info: Ignoring 'Moved File:' header inside code block at original pos {}.",
+                        header_original_pos
+                    );
+                    processed_header_starts.insert(header_original_pos);
+                    return Ok(None);
+                }
+            }
         }
     }
     Ok(None)

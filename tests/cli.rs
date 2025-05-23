@@ -5,6 +5,8 @@
 mod common;
 
 // Declare the specific test modules (tests/cli/*.rs)
+#[path = "cli/append_prepend.rs"] // ADDED
+mod append_prepend;
 #[path = "cli/basic.rs"]
 mod basic;
 #[path = "cli/create.rs"]
@@ -15,7 +17,7 @@ mod delete;
 mod empty_input;
 #[path = "cli/errors.rs"]
 mod errors;
-#[path = "cli/move_file.rs"] // ADDED
+#[path = "cli/move_file.rs"]
 mod move_file;
 #[path = "cli/overwrite_skip.rs"]
 mod overwrite_skip;

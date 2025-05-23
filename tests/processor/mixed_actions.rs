@@ -30,7 +30,9 @@ fn test_process_create_and_delete_mixed() {
         .child("data/to_delete_2.tmp")
         .assert(predicate::path::missing());
 
-    assert_summary(&summary, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -59,7 +61,9 @@ fn test_process_create_and_overwrite_mixed_force() {
         .child("data/params.json")
         .assert("{\n  \"new\": true,\n  \"overwritten\": true\n}\n");
 
-    assert_summary(&summary, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -93,7 +97,9 @@ fn test_process_create_overwrite_delete_complex() {
         .child("non_existent.tmp")
         .assert(predicate::path::missing());
 
-    assert_summary(&summary, 2, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 2, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -132,5 +138,48 @@ fn test_process_create_delete_move_complex() {
         .assert("initial_target_content");
 
     // Expected: 2 created, 1 deleted, 1 moved (app.cfg), 1 moved_overwritten (target_for_overwrite.ini to itself with --force)
-    assert_summary(&summary, 2, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 2, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
+}
+
+#[test]
+fn test_process_create_append_prepend_delete_move_complex() {
+    let temp_dir = setup_temp_dir_with_files(&[
+        ("config.txt", "Initial config\n"),
+        ("app.log", "Log started\n"),
+        ("old_file.txt", "To be moved"),
+        ("to_delete.txt", "Delete this"),
+    ]);
+
+    let md = "\n## File: new_file.txt\n```\nNew file content\n```\n\n## Append File: app.log\n```\nLog entry 1\n```\n\n## Prepend File: config.txt\n```\n# Auto-generated header\n```\n\n## Moved File: old_file.txt to archive/moved_file.txt\n\n**Deleted File: to_delete.txt**\n\n## Append File: app.log\n```\nLog entry 2\n```\n";
+
+    let (summary, _) = run_processor(md, &temp_dir, false).expect("Processing failed");
+
+    // Create
+    temp_dir.child("new_file.txt").assert("New file content\n");
+    // Append (twice)
+    temp_dir
+        .child("app.log")
+        .assert("Log started\nLog entry 1\nLog entry 2\n");
+    // Prepend
+    temp_dir
+        .child("config.txt")
+        .assert("# Auto-generated header\nInitial config\n");
+    // Move
+    temp_dir
+        .child("old_file.txt")
+        .assert(predicate::path::missing());
+    temp_dir
+        .child("archive/moved_file.txt")
+        .assert("To be moved");
+    // Delete
+    temp_dir
+        .child("to_delete.txt")
+        .assert(predicate::path::missing());
+
+    // Summary: 1 created, 2 appended, 1 prepended, 1 moved, 1 deleted
+    assert_summary(
+        &summary, 1, 0, 1, 1, 0, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }

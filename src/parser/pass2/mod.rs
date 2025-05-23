@@ -10,7 +10,7 @@ use std::collections::HashSet;
 // Declare submodules for Pass 2
 mod standalone_delete;
 
-/// Executes Pass 2: Find standalone Delete/Move headers and warn about orphaned Create.
+/// Executes Pass 2: Find standalone Delete/Move headers and warn about orphaned Create/Append/Prepend.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn run_pass2(
     content_to_parse: &str,
@@ -69,7 +69,9 @@ pub(crate) fn run_pass2(
                             actions_with_pos,
                         );
                     }
-                    crate::core_types::ActionType::Create => {
+                    crate::core_types::ActionType::Create
+                    | crate::core_types::ActionType::Append
+                    | crate::core_types::ActionType::Prepend => {
                         eprintln!(
                             "Warning: Found header '{}' for path '{}' at original pos {} without an associated code block. Skipping.",
                             header_match.as_str().trim(), details.path, original_header_pos

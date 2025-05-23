@@ -20,7 +20,9 @@ fn test_process_create_duplicate_last_wins_with_force() {
         .assert(predicate::path::is_file());
     temp_dir.child("duplicate.txt").assert("Second content\n"); // Last action's content
                                                                 // The first action creates, the second overwrites.
-    assert_summary(&summary, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -38,7 +40,9 @@ fn test_process_create_duplicate_no_force_skips() {
         .child("duplicate_skip.txt")
         .assert("First content\n"); // First action's content remains
                                     // The first action creates, the second is skipped because it exists.
-    assert_summary(&summary, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -51,7 +55,9 @@ fn test_process_create_then_delete_last_wins() {
     temp_dir
         .child("create_then_delete.txt")
         .assert(predicate::path::missing()); // Last action (delete) wins
-    assert_summary(&summary, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -68,7 +74,9 @@ fn test_process_delete_then_create_last_wins() {
         .child("delete_then_create.txt")
         .assert("Should exist\n"); // Last action (create) wins
                                    // The first action deletes, the second creates.
-    assert_summary(&summary, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -85,5 +93,7 @@ fn test_process_delete_then_create_no_initial_file() {
         .child("delete_then_create_missing.txt")
         .assert("Should exist\n"); // Last action (create) wins
                                    // The first action skips (not found), the second creates.
-    assert_summary(&summary, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }

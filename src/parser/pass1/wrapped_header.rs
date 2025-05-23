@@ -4,7 +4,7 @@ use crate::core_types::{Action, ActionType};
 // Removed unused ParseError import
 // use crate::errors::ParseError;
 use crate::parser::header_utils::{extract_header_action_details, get_action_type};
-use crate::parser::pass1::wrapped_create_handler; // Import new handler
+use crate::parser::pass1::wrapped_create_handler; // Import handler (now generic)
 use crate::parser::path_utils::validate_path_format;
 use crate::parser::regex::HEADER_REGEX;
 // Import type aliases
@@ -58,14 +58,15 @@ pub(crate) fn handle_wrapped_header(
 
                 if let Some(action_type) = get_action_type(&details.action_word) {
                     match action_type {
-                        ActionType::Create => {
-                            // Delegate to specific handler
-                            return wrapped_create_handler::handle_wrapped_create(
+                        ActionType::Create | ActionType::Append | ActionType::Prepend => {
+                            // Delegate to specific handler for content-based actions
+                            return wrapped_create_handler::handle_wrapped_content_action(
                                 content_to_parse,
                                 parse_offset,
                                 fence_start_pos,
                                 block_outer_end,
-                                &details.path, // Pass path from details
+                                action_type, // Pass the determined action_type
+                                &details.path,
                                 potential_header_line,
                                 processed_code_block_ranges,
                             );

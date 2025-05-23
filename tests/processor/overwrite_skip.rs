@@ -19,7 +19,9 @@ fn test_process_create_skip_existing_no_force() {
     let (summary, _) = run_processor(md, &temp_dir, false).expect("Processing failed"); // overwrite = false
 
     temp_dir.child("existing.txt").assert("Original");
-    assert_summary(&summary, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -36,7 +38,9 @@ fn test_process_create_overwrite_existing_with_force() {
     temp_dir
         .child("existing.txt")
         .assert("New content, should overwrite\n");
-    assert_summary(&summary, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -49,7 +53,9 @@ fn test_process_delete_skip_not_found() {
     temp_dir
         .child("missing.txt")
         .assert(predicate::path::missing());
-    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -63,5 +69,7 @@ fn test_process_delete_skip_is_directory() {
     temp_dir
         .child("a_directory")
         .assert(predicate::path::is_dir());
-    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }

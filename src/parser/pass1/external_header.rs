@@ -60,6 +60,7 @@ pub(crate) fn handle_external_header(
 
         // If it wasn't the special delete keyword, proceed with normal extraction.
         // This handles ## File:, **File:**, `path`, **`path`**, ## `path`, etc.
+        // Also handles Append File, Prepend File.
         // "Moved File" headers are standalone and should not be associated with code blocks here.
         if let Some(details) = extract_header_action_details(&caps) {
             if details.dest_path.is_some() {
@@ -78,24 +79,50 @@ pub(crate) fn handle_external_header(
                 );
                 return Ok(None);
             }
-            // We already handled Delete above, so only check for Create here.
-            // get_action_type correctly maps `File` (implied or explicit) to Create.
-            if let Some(ActionType::Create) = get_action_type(&details.action_word) {
-                println!("    Found external header: '{}'", stripped_prev_line);
-                let mut block_data = content[block_content_start..block_content_end].to_string();
-                ensure_trailing_newline(&mut block_data);
-                let action = Action {
-                    action_type: ActionType::Create,
-                    path: details.path,
-                    dest_path: None, // Create actions don't have a dest_path
-                    content: Some(block_data),
-                    original_pos: 0, // Set later in pass1 mod
-                };
-                println!("     -> Added CREATE action for '{}'", action.path);
-                return Ok(Some((action, prev_line_start_rel)));
+
+            if let Some(action_type_enum) = get_action_type(&details.action_word) {
+                match action_type_enum {
+                    ActionType::Create | ActionType::Append | ActionType::Prepend => {
+                        println!("    Found external header: '{}'", stripped_prev_line);
+                        let mut block_data =
+                            content[block_content_start..block_content_end].to_string();
+                        ensure_trailing_newline(&mut block_data);
+                        let action = Action {
+                            action_type: action_type_enum,
+                            path: details.path,
+                            dest_path: None,
+                            content: Some(block_data),
+                            original_pos: 0, // Set later in pass1 mod
+                        };
+                        println!(
+                            "     -> Added {} action for '{}'",
+                            format!("{:?}", action.action_type).to_uppercase(),
+                            action.path
+                        );
+                        return Ok(Some((action, prev_line_start_rel)));
+                    }
+                    ActionType::Delete => {
+                        // Standalone Delete headers are handled by Pass 2.
+                        // The special "Deleted File:" + block case is handled above.
+                        // If we reach here with ActionType::Delete, it means it's a standalone
+                        // header that shouldn't be associated with this block.
+                        println!(
+                            "    Info: External header '{}' is a standalone 'Delete' action. Ignoring for this code block.",
+                            stripped_prev_line
+                        );
+                    }
+                    ActionType::Move => {
+                        // This should have been caught by `details.dest_path.is_some()` check.
+                        // If not, it's an error or unexpected state.
+                        eprintln!(
+                            "    Error: Unexpected 'Move' action type for external header associated with a code block: '{}'. Ignoring.",
+                            stripped_prev_line
+                        );
+                    }
+                }
             } else {
                 println!(
-                    "    Info: External header '{}' matched regex but action type was not Create or Delete(special). Ignoring.",
+                    "    Info: External header '{}' matched regex but action type was not recognized. Ignoring.",
                     stripped_prev_line
                 );
             }
@@ -105,7 +132,7 @@ pub(crate) fn handle_external_header(
                 stripped_prev_line
             );
         }
-        // If path extraction failed or action wasn't Create, fall through to Ok(None)
+        // If path extraction failed or action wasn't Create/Append/Prepend, fall through to Ok(None)
     }
     Ok(None)
 }

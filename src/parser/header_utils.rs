@@ -1,13 +1,15 @@
 //! Utilities for parsing markdown header lines (e.g., **Action: path**).
 
-use crate::constants::{ACTION_DELETED_FILE, ACTION_FILE, ACTION_MOVED_FILE};
+use crate::constants::{
+    ACTION_APPEND_FILE, ACTION_DELETED_FILE, ACTION_FILE, ACTION_MOVED_FILE, ACTION_PREPEND_FILE,
+}; // Added new actions
 use crate::core_types::ActionType;
 use regex::Captures;
 
 /// Represents the details extracted from a header line.
 pub(crate) struct ParsedHeaderAction {
     pub action_word: String,
-    pub path: String, // Source path for Move, target path for File/Delete
+    pub path: String, // Source path for Move, target path for File/Delete/Append/Prepend
     pub dest_path: Option<String>, // Destination path for Move
 }
 
@@ -62,7 +64,8 @@ pub(crate) fn extract_header_action_details(caps: &Captures) -> Option<ParsedHea
                     None // Failed to parse "source to dest"
                 }
             } else {
-                // For ACTION_FILE (including backtick-only cases) and ACTION_DELETED_FILE
+                // For ACTION_FILE (including backtick-only cases), ACTION_DELETED_FILE,
+                // ACTION_APPEND_FILE, ACTION_PREPEND_FILE
                 if let Some(path) = parse_single_path_from_content(&raw_content) {
                     if is_path_valid_for_action(&path) {
                         Some(ParsedHeaderAction {
@@ -103,7 +106,8 @@ fn is_path_valid_for_action(path_str: &str) -> bool {
 }
 
 /// Parses a single path from a content string (which might include backticks or trailing comments).
-/// Used for "File:" and "Deleted File:" actions, and for backtick-only path headers.
+/// Used for "File:", "Deleted File:", "Append File:", "Prepend File:" actions,
+/// and for backtick-only path headers.
 fn parse_single_path_from_content(raw_content: &str) -> Option<String> {
     let trimmed_content = raw_content.trim();
 
@@ -198,7 +202,9 @@ pub(crate) fn get_action_type(action_word: &str) -> Option<ActionType> {
     match action_word {
         ACTION_FILE => Some(ActionType::Create),
         ACTION_DELETED_FILE => Some(ActionType::Delete),
-        ACTION_MOVED_FILE => Some(ActionType::Move), // New mapping
+        ACTION_MOVED_FILE => Some(ActionType::Move),
+        ACTION_APPEND_FILE => Some(ActionType::Append), // New mapping
+        ACTION_PREPEND_FILE => Some(ActionType::Prepend), // New mapping
         _ => None,
     }
 }

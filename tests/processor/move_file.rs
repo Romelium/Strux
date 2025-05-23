@@ -18,7 +18,9 @@ fn test_process_move_file_simple() {
         .child("source.txt")
         .assert(predicate::path::missing());
     temp_dir.child("dest.txt").assert("Move me");
-    assert_summary(&summary, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -38,7 +40,9 @@ fn test_process_move_file_create_dest_parent_dir() {
     temp_dir
         .child("new_dir/sub_dir/dest.txt")
         .assert("Move me too");
-    assert_summary(&summary, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -51,7 +55,10 @@ fn test_process_move_file_source_not_found() {
     temp_dir
         .child("dest.txt")
         .assert(predicate::path::missing());
-    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0);
+    // skipped_move_src_not_found is 11th overall param
+    assert_summary(
+        &summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -68,7 +75,10 @@ fn test_process_move_file_source_is_dir() {
     temp_dir
         .child("dest.txt")
         .assert(predicate::path::missing()); // Dest not created
-    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0);
+                                             // skipped_move_src_is_dir is 12th overall param
+    assert_summary(
+        &summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -83,7 +93,10 @@ fn test_process_move_file_dest_exists_no_force() {
 
     temp_dir.child("source.txt").assert("Source content"); // Source unchanged
     temp_dir.child("dest.txt").assert("Existing dest content"); // Dest unchanged
-    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0);
+                                                                // skipped_move_dst_exists is 13th overall param
+    assert_summary(
+        &summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -100,7 +113,10 @@ fn test_process_move_file_dest_exists_with_force() {
         .child("source.txt")
         .assert(predicate::path::missing()); // Source gone
     temp_dir.child("dest.txt").assert("Source content"); // Dest overwritten
-    assert_summary(&summary, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+                                                         // moved_overwritten is 5th overall param
+    assert_summary(
+        &summary, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -117,7 +133,10 @@ fn test_process_move_file_dest_is_dir() {
     temp_dir
         .child("dest_dir/source.txt")
         .assert(predicate::path::missing());
-    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0);
+    // skipped_move_dst_isdir is 14th overall param
+    assert_summary(
+        &summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -134,7 +153,10 @@ fn test_process_move_file_dest_is_dir_with_force() {
     temp_dir
         .child("dest_dir/source.txt")
         .assert(predicate::path::missing());
-    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0);
+    // skipped_move_dst_isdir is 14th overall param
+    assert_summary(
+        &summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -147,7 +169,10 @@ fn test_process_move_file_unsafe_source() {
     temp_dir
         .child("safe_dest.txt")
         .assert(predicate::path::missing());
-    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0);
+    // failed_unsafe is the 4th "failed" param (18th overall)
+    assert_summary(
+        &summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+    );
 }
 
 #[test]
@@ -160,7 +185,10 @@ fn test_process_move_file_unsafe_destination() {
     temp_dir.child("safe_source.txt").assert("content"); // Source should remain
     let parent_dir = temp_dir.path().parent().unwrap();
     assert!(predicate::path::missing().eval(&parent_dir.join("unsafe_dest.txt")));
-    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0);
+    // failed_unsafe is the 4th "failed" param (18th overall)
+    assert_summary(
+        &summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+    );
 }
 
 #[test]
@@ -171,6 +199,7 @@ fn test_process_move_file_source_and_dest_are_same() {
     // Without --force, this should be skipped as destination exists
     let (summary_no_force, _) = run_processor(md, &temp_dir, false).expect("Processing failed");
     temp_dir.child("file.txt").assert("content");
+    // skipped_move_dst_exists is 13th overall param
     assert_summary(
         &summary_no_force,
         0,
@@ -183,7 +212,11 @@ fn test_process_move_file_source_and_dest_are_same() {
         0,
         0,
         0,
+        0,
+        0,
         1,
+        0,
+        0,
         0,
         0,
         0,
@@ -194,6 +227,7 @@ fn test_process_move_file_source_and_dest_are_same() {
     // With --force, this should be a no-op, counted as MovedOverwritten due to the --force flag.
     let (summary_force, _) = run_processor(md, &temp_dir, true).expect("Processing failed");
     temp_dir.child("file.txt").assert("content");
+    // moved_overwritten is 5th overall param
     assert_summary(
         &summary_force,
         0,
@@ -201,6 +235,10 @@ fn test_process_move_file_source_and_dest_are_same() {
         0,
         0,
         1,
+        0,
+        0,
+        0,
+        0,
         0,
         0,
         0,
@@ -225,6 +263,7 @@ fn test_process_move_file_source_and_dest_are_same_source_missing() {
     temp_dir
         .child("file.txt")
         .assert(predicate::path::missing());
+    // skipped_move_src_not_found is 11th overall param
     assert_summary(
         &summary_no_force,
         0,
@@ -235,6 +274,8 @@ fn test_process_move_file_source_and_dest_are_same_source_missing() {
         0,
         0,
         0,
+        0,
+        0,
         1,
         0,
         0,
@@ -243,13 +284,16 @@ fn test_process_move_file_source_and_dest_are_same_source_missing() {
         0,
         0,
         0,
-    ); // SkippedSourceNotFound
+        0,
+        0,
+    );
 
     // With --force
     let (summary_force, _) = run_processor(md, &temp_dir, true).expect("Processing failed");
     temp_dir
         .child("file.txt")
         .assert(predicate::path::missing());
+    // skipped_move_src_not_found is 11th overall param
     assert_summary(
         &summary_force,
         0,
@@ -260,6 +304,8 @@ fn test_process_move_file_source_and_dest_are_same_source_missing() {
         0,
         0,
         0,
+        0,
+        0,
         1,
         0,
         0,
@@ -268,5 +314,7 @@ fn test_process_move_file_source_and_dest_are_same_source_missing() {
         0,
         0,
         0,
-    ); // SkippedSourceNotFound
+        0,
+        0,
+    );
 }

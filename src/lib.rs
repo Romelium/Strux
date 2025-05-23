@@ -12,7 +12,10 @@ pub mod processor;
 // Re-export essential types/functions for easier use by the binary crate (main.rs)
 // or potentially other consumers of this library.
 pub use constants::*;
-pub use core_types::{Action, ActionType, CreateStatus, DeleteStatus, MoveStatus, Summary}; // Added MoveStatus
+pub use core_types::{
+    Action, ActionType, AppendStatus, CreateStatus, DeleteStatus, MoveStatus, PrependStatus,
+    Summary,
+}; // Added AppendStatus, PrependStatus
 pub use errors::{AppError, ParseError, ProcessError};
 pub use parser::parse_markdown;
 pub use processor::process_actions;

@@ -20,7 +20,10 @@ fn test_process_create_target_is_directory() {
         .child("target_dir")
         .assert(predicate::path::is_dir());
     assert!(read_file_content(temp_dir.child("target_dir").path()).is_none());
-    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0);
+    // failed_isdir_create is the 2nd "failed" param (16th overall)
+    assert_summary(
+        &summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -41,7 +44,10 @@ fn test_process_create_parent_is_file() {
     temp_dir
         .child("parent_file/nested_file.txt")
         .assert(predicate::path::missing());
-    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0);
+    // failed_parent_isdir is the 3rd "failed" param (17th overall)
+    assert_summary(
+        &summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
+    );
 }
 
 #[test]
@@ -57,7 +63,10 @@ fn test_process_path_not_safe_relative() {
         !parent_dir.join("outside_file.txt").exists(),
         "File was created outside the base directory!"
     );
-    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0);
+    // failed_unsafe is the 4th "failed" param (18th overall)
+    assert_summary(
+        &summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+    );
 }
 
 #[test]
@@ -78,7 +87,10 @@ fn test_process_invalid_path_format_in_action() {
     temp_dir
         .child("bad//path.txt")
         .assert(predicate::path::missing());
-    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0);
+    // failed_unsafe is the 4th "failed" param (18th overall)
+    assert_summary(
+        &summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+    );
 }
 
 #[test]
@@ -97,5 +109,8 @@ fn test_process_empty_path_string() {
         .expect("Processing should not fail overall");
 
     // The main check is that the summary correctly recorded the failure.
-    assert_summary(&summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0);
+    // failed_unsafe is the 4th "failed" param (18th overall)
+    assert_summary(
+        &summary, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+    );
 }

@@ -5,6 +5,8 @@
 mod common;
 
 // Declare the specific test modules (tests/parser/*.rs)
+#[path = "parser/append_prepend.rs"] // ADDED
+mod append_prepend;
 #[path = "parser/create_external.rs"]
 mod create_external;
 #[path = "parser/create_internal.rs"]
@@ -19,7 +21,7 @@ mod edge_cases;
 mod heuristics;
 #[path = "parser/invalid_paths.rs"]
 mod invalid_paths;
-#[path = "parser/move_file.rs"] // ADDED
+#[path = "parser/move_file.rs"]
 mod move_file;
 #[path = "parser/nested_content.rs"]
 mod nested_content;

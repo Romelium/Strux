@@ -21,5 +21,7 @@ fn test_process_delete_file() {
     temp_dir
         .child("to_delete.log")
         .assert(predicate::path::missing());
-    assert_summary(&summary, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert_summary(
+        &summary, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    );
 }

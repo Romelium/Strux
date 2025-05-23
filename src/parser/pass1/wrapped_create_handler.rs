@@ -1,4 +1,4 @@
-//! Handles the specific logic for a wrapped 'Create' header in Pass 1.
+//! Handles the specific logic for a wrapped 'Create', 'Append', or 'Prepend' header in Pass 1.
 
 use crate::core_types::{Action, ActionType};
 // Removed unused ParseError import
@@ -9,14 +9,16 @@ use crate::parser::pass1::{fence_finder, utils};
 use super::types::WrappedActionResult;
 use std::collections::HashSet;
 
-/// Handles the specific logic for a wrapped 'Create' header.
+/// Handles the specific logic for a wrapped 'Create', 'Append', or 'Prepend' header.
 /// Looks for the next adjacent code block and associates the header with it.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn handle_wrapped_create(
+pub(crate) fn handle_wrapped_content_action(
+    // Renamed for clarity
     content_to_parse: &str,
     parse_offset: usize,
-    fence_start_pos: usize,
-    block_outer_end: usize,
+    fence_start_pos: usize,  // Start of the ```markdown block
+    block_outer_end: usize,  // End of the ```markdown block
+    action_type: ActionType, // Pass the determined ActionType
     path: &str,
     potential_header_line: &str,
     processed_code_block_ranges: &mut HashSet<(usize, usize)>,
@@ -33,8 +35,8 @@ pub(crate) fn handle_wrapped_create(
         let gap = &content_to_parse[block_outer_end..next_fence_match.start()];
         if gap.trim().is_empty() {
             println!(
-                "    Found wrapped header '{}' associated with the following code block.",
-                potential_header_line
+                "    Found wrapped header '{}' ({:?}) associated with the following code block.",
+                potential_header_line, action_type
             );
 
             // Now process the *next* block using the header info we just extracted
@@ -55,27 +57,29 @@ pub(crate) fn handle_wrapped_create(
 
                 // Create the action using the wrapped header info
                 let action = Action {
-                    action_type: ActionType::Create,
-                    path: path.to_string(), // Clone path here
-                    dest_path: None,        // Create actions don't have a dest_path
+                    action_type, // Use passed ActionType
+                    path: path.to_string(),
+                    dest_path: None,
                     content: Some(block_data),
-                    // Use original_pos of the markdown header block
                     original_pos: fence_start_pos + parse_offset,
                 };
                 let next_block_range = (next_fence_start, next_outer_end);
                 println!(
-                    "     -> Added CREATE action for '{}' from wrapped header.",
-                    path // Use original path for println
+                    "     -> Added {:?} action for '{}' from wrapped header.",
+                    action.action_type, path
                 );
                 return Ok(Some((action, fence_start_pos, next_block_range)));
             } else {
-                eprintln!("Warning: Found wrapped Create header '{}' but the following code block is unclosed. Skipping.", potential_header_line);
+                eprintln!("Warning: Found wrapped {:?} header '{}' but the following code block is unclosed. Skipping.", action_type, potential_header_line);
             }
         } else {
-            eprintln!("Warning: Found wrapped Create header '{}' but it's not immediately followed by a code block (gap='{}'). Skipping.", potential_header_line, gap.escape_debug());
+            eprintln!("Warning: Found wrapped {:?} header '{}' but it's not immediately followed by a code block (gap='{}'). Skipping.", action_type, potential_header_line, gap.escape_debug());
         }
     } else {
-        eprintln!("Warning: Found wrapped Create header '{}' but no subsequent code block found. Skipping.", potential_header_line);
+        eprintln!(
+            "Warning: Found wrapped {:?} header '{}' but no subsequent code block found. Skipping.",
+            action_type, potential_header_line
+        );
     }
     Ok(None)
 }

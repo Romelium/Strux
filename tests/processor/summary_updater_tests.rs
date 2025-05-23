@@ -1,0 +1,189 @@
+//! Unit tests for summary_updater.rs functionality.
+
+// Bring items from the specific module being tested into scope
+use strux::processor::summary_updater::*; // Corrected path
+
+// Bring items from other modules needed for tests into scope
+use std::io;
+use std::path::PathBuf;
+use strux::core_types::{
+    AppendStatus, CreateStatus, DeleteStatus, MoveStatus, PrependStatus, Summary,
+}; // Corrected path
+use strux::errors::ProcessError; // Corrected path
+
+fn empty_summary() -> Summary {
+    Summary::default()
+}
+
+#[test]
+fn test_update_summary_create() {
+    let mut summary = empty_summary();
+    update_summary_create(&mut summary, CreateStatus::Created);
+    assert_eq!(summary.created, 1);
+    update_summary_create(&mut summary, CreateStatus::Overwritten);
+    assert_eq!(summary.overwritten, 1);
+    update_summary_create(&mut summary, CreateStatus::SkippedExists);
+    assert_eq!(summary.skipped_exists, 1);
+    assert_eq!(summary.deleted, 0); // Ensure others unchanged
+}
+
+#[test]
+fn test_update_summary_delete() {
+    let mut summary = empty_summary();
+    update_summary_delete(&mut summary, DeleteStatus::Deleted);
+    assert_eq!(summary.deleted, 1);
+    update_summary_delete(&mut summary, DeleteStatus::SkippedNotFound);
+    assert_eq!(summary.skipped_not_found, 1);
+    update_summary_delete(&mut summary, DeleteStatus::SkippedIsDir);
+    assert_eq!(summary.skipped_isdir_delete, 1);
+    update_summary_delete(&mut summary, DeleteStatus::SkippedOtherType);
+    assert_eq!(summary.skipped_other_type, 1);
+    assert_eq!(summary.created, 0); // Ensure others unchanged
+}
+
+#[test]
+fn test_update_summary_move() {
+    let mut summary = empty_summary();
+    update_summary_move(&mut summary, MoveStatus::Moved);
+    assert_eq!(summary.moved, 1);
+    update_summary_move(&mut summary, MoveStatus::MovedOverwritten);
+    assert_eq!(summary.moved_overwritten, 1);
+    update_summary_move(&mut summary, MoveStatus::SkippedSourceNotFound);
+    assert_eq!(summary.skipped_move_src_not_found, 1);
+    update_summary_move(&mut summary, MoveStatus::SkippedSourceIsDir);
+    assert_eq!(summary.skipped_move_src_is_dir, 1);
+    update_summary_move(&mut summary, MoveStatus::SkippedDestinationExists);
+    assert_eq!(summary.skipped_move_dst_exists, 1);
+    update_summary_move(&mut summary, MoveStatus::SkippedDestinationIsDir);
+    assert_eq!(summary.skipped_move_dst_isdir, 1);
+    assert_eq!(summary.created, 0); // Ensure others unchanged
+}
+
+#[test]
+fn test_update_summary_append() {
+    let mut summary = empty_summary();
+    update_summary_append(&mut summary, AppendStatus::Appended);
+    assert_eq!(summary.appended, 1);
+    assert_eq!(summary.created, 0);
+    update_summary_append(&mut summary, AppendStatus::Created);
+    assert_eq!(summary.appended, 1); // Appended remains 1
+    assert_eq!(summary.created, 1); // Created increments
+}
+
+#[test]
+fn test_update_summary_prepend() {
+    let mut summary = empty_summary();
+    update_summary_prepend(&mut summary, PrependStatus::Prepended);
+    assert_eq!(summary.prepended, 1);
+    assert_eq!(summary.created, 0);
+    update_summary_prepend(&mut summary, PrependStatus::Created);
+    assert_eq!(summary.prepended, 1); // Prepended remains 1
+    assert_eq!(summary.created, 1); // Created increments
+}
+
+#[test]
+fn test_update_summary_error() {
+    let mut summary;
+
+    summary = empty_summary();
+    update_summary_error(
+        &mut summary,
+        ProcessError::Io {
+            source: io::Error::new(io::ErrorKind::NotFound, "test"),
+        },
+    );
+    assert_eq!(summary.failed_io, 1);
+
+    summary = empty_summary();
+    update_summary_error(
+        &mut summary,
+        ProcessError::PathResolution {
+            path: PathBuf::new(),
+            details: "".into(),
+        },
+    );
+    assert_eq!(summary.failed_io, 1);
+
+    summary = empty_summary();
+    update_summary_error(
+        &mut summary,
+        ProcessError::PathNotSafe {
+            resolved_path: PathBuf::new(),
+            base_path: PathBuf::new(),
+        },
+    );
+    assert_eq!(summary.failed_unsafe, 1);
+
+    summary = empty_summary();
+    update_summary_error(
+        &mut summary,
+        ProcessError::InvalidPathFormat { path: "".into() },
+    );
+    assert_eq!(summary.failed_unsafe, 1);
+
+    summary = empty_summary();
+    update_summary_error(
+        &mut summary,
+        ProcessError::TargetIsDirectory {
+            path: PathBuf::new(),
+        },
+    );
+    assert_eq!(summary.failed_isdir_create, 1);
+
+    summary = empty_summary();
+    update_summary_error(
+        &mut summary,
+        ProcessError::TargetIsDirectoryForAppend {
+            // New
+            path: PathBuf::new(),
+        },
+    );
+    assert_eq!(summary.failed_isdir_append, 1);
+
+    summary = empty_summary();
+    update_summary_error(
+        &mut summary,
+        ProcessError::TargetIsDirectoryForPrepend {
+            // New
+            path: PathBuf::new(),
+        },
+    );
+    assert_eq!(summary.failed_isdir_prepend, 1);
+
+    summary = empty_summary();
+    update_summary_error(
+        &mut summary,
+        ProcessError::ParentIsNotDirectory {
+            path: PathBuf::new(),
+            parent_path: PathBuf::new(),
+        },
+    );
+    assert_eq!(summary.failed_parent_isdir, 1);
+
+    summary = empty_summary();
+    update_summary_error(
+        &mut summary,
+        ProcessError::MoveSourceIsDir {
+            path: PathBuf::new(),
+        },
+    );
+    assert_eq!(summary.skipped_move_src_is_dir, 1); // Check specific mapping
+
+    summary = empty_summary();
+    update_summary_error(&mut summary, ProcessError::UnknownAction);
+    assert_eq!(summary.error_other, 1);
+
+    summary = empty_summary();
+    update_summary_error(
+        &mut summary,
+        ProcessError::Internal("internal error".into()),
+    );
+    assert_eq!(summary.error_other, 1);
+
+    // Ensure others unchanged
+    assert_eq!(summary.created, 0);
+    assert_eq!(summary.deleted, 0);
+    assert_eq!(summary.moved, 0);
+    assert_eq!(summary.appended, 0);
+    assert_eq!(summary.prepended, 0);
+}

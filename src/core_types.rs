@@ -9,15 +9,17 @@
 pub enum ActionType {
     Create,
     Delete,
-    Move, // New action type
+    Move,
+    Append,  // New action type
+    Prepend, // New action type
 }
 
 #[derive(Debug, Clone)]
 pub struct Action {
     pub action_type: ActionType,
-    pub path: String, // Source path for Move, target path for Create/Delete
+    pub path: String, // Source path for Move, target path for Create/Delete/Append/Prepend
     pub dest_path: Option<String>, // Destination path for Move
-    pub content: Option<String>, // Content for Create
+    pub content: Option<String>, // Content for Create/Append/Prepend
     pub original_pos: usize, // Byte offset in original markdown content
 }
 
@@ -26,20 +28,24 @@ pub struct Summary {
     pub created: u32,
     pub overwritten: u32,
     pub deleted: u32,
-    pub moved: u32,             // New summary field
-    pub moved_overwritten: u32, // New summary field
+    pub moved: u32,
+    pub moved_overwritten: u32,
+    pub appended: u32,  // New summary field
+    pub prepended: u32, // New summary field
     pub skipped_exists: u32,
     pub skipped_not_found: u32,
     pub skipped_isdir_delete: u32,
     pub skipped_other_type: u32,
-    pub skipped_move_src_not_found: u32, // New summary field
-    pub skipped_move_src_is_dir: u32,    // New summary field
-    pub skipped_move_dst_exists: u32,    // New summary field
-    pub skipped_move_dst_isdir: u32,     // New summary field
+    pub skipped_move_src_not_found: u32,
+    pub skipped_move_src_is_dir: u32,
+    pub skipped_move_dst_exists: u32,
+    pub skipped_move_dst_isdir: u32,
     pub failed_io: u32,
     pub failed_isdir_create: u32,
     pub failed_parent_isdir: u32,
     pub failed_unsafe: u32,
+    pub failed_isdir_append: u32,  // New summary field
+    pub failed_isdir_prepend: u32, // New summary field
     pub error_other: u32,
 }
 
@@ -62,9 +68,21 @@ pub enum DeleteStatus {
 #[derive(Debug, PartialEq, Eq)]
 pub enum MoveStatus {
     Moved,
-    MovedOverwritten, // When --force is used and destination file is overwritten
+    MovedOverwritten,
     SkippedSourceNotFound,
     SkippedSourceIsDir,
-    SkippedDestinationExists, // When destination file exists and --force is not used
-    SkippedDestinationIsDir,  // When destination path is an existing directory
+    SkippedDestinationExists,
+    SkippedDestinationIsDir,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum AppendStatus {
+    Appended, // Content was appended to an existing file
+    Created,  // File did not exist, so it was created with the content
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum PrependStatus {
+    Prepended, // Content was prepended to an existing file
+    Created,   // File did not exist, so it was created with the content
 }
