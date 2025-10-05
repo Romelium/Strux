@@ -14,6 +14,7 @@ The tool reads a markdown file, identifies actions (like creating, appending, pr
 * Supports appending content to existing files (creates if not exists).
 * Supports prepending content to existing files (creates if not exists).
 * Supports deleting files.
+* Flexible association of headers with code blocks, allowing for descriptive text in between.
 * Supports moving files.
 * Multiple header formats for defining actions (Markdown headers, backticks, internal comments).
 * "Wrapped" header format for associating headers with subsequent code blocks or for standalone delete/move actions.
@@ -83,10 +84,11 @@ The following header formats are recognized:
 
 **1. `File` Actions (Create/Overwrite):**
 
-These headers must be immediately followed by a fenced code block (e.g., `````, ```` ``` ````). The content of the code block becomes the content of the file.
+These headers are associated with the next available fenced code block (e.g., `````, ```` ``` ````). While they are typically placed immediately before the code block, they can be separated by paragraphs of text. The content of the associated code block becomes the content of the file.
 
 * **Markdown Headers:**
-  * `## File: path/to/your/file.txt`
+  * `## File: path/to/your/file.txt` (and with more hashes like `###`, `####`, etc.)
+  * `### Any descriptive text File: path/to/your/file.txt`
   * `**File: path/to/your/file.txt**`
 * **Backtick Path Only:** (Implies `File` action)
   * `` `path/to/your/file.txt` ``
