@@ -7,7 +7,7 @@ license = "MIT"
 authors = ["author@romelium.cc"]
 repository = "https://github.com/romelium/strux"
 readme = "README.md"
-keywords = ["markdown", "cli", "generator", "filesystem", "scaffold", "structure"]
+keywords = ["markdown", "cli", "generator", "filesystem", "scaffold"]
 categories = ["command-line-utilities", "filesystem", "development-tools"]
 
 [dependencies]
