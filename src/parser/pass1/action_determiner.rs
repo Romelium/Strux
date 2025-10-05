@@ -28,6 +28,7 @@ pub(crate) fn determine_block_action(
         block_content_start,
         block_content_end,
         parse_offset,
+        processed_header_starts,
     )? {
         return Ok(Some((action, header_pos, "external")));
     }

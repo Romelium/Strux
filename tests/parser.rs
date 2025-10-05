@@ -7,6 +7,8 @@ mod common;
 // Declare the specific test modules (tests/parser/*.rs)
 #[path = "parser/append_prepend.rs"] // ADDED
 mod append_prepend;
+#[path = "parser/create_distant.rs"]
+mod create_distant;
 #[path = "parser/create_external.rs"]
 mod create_external;
 #[path = "parser/create_internal.rs"]

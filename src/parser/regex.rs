@@ -15,7 +15,7 @@ pub static HEADER_REGEX: Lazy<Regex> = Lazy::new(|| {
         // **Action: content**: Capture content greedily, allow optional trailing text after **.
         // ## Action: content: Capture content greedily, no optional trailing text needed here (extractor handles).
         // Backtick versions remain specific but allow optional trailing text after marker.
-        "(?m)^(?:\\*\\*\\s*(?P<action_word_bold>{actions}):\\s*(?P<content_bold>.+?)\\s*\\*\\*(?:[^\\n]*)?$|##\\s+`(?P<path_hash_backtick>[^`\\n]+?)`(?:[^\\n]*)?$|##\\s+(?P<action_word_hash>{actions}):\\s*(?P<content_hash>.*)$|`(?P<path_backtick_only>[^`\\n]+?)`(?:[^\\n]*)?$|(?P<num>\\d+)\\.\\s+`(?P<path_numbered_backtick>[^`\\n]+?)`(?:[^\\n]*)?$|\\*\\*\\s*`(?P<path_bold_backtick>[^`\\n]+?)`\\s*\\*\\*(?:[^\\n]*)?$)",
+        "(?m)^(?:\\*\\*\\s*(?P<action_word_bold>{actions}):\\s*(?P<content_bold>.+?)\\s*\\*\\*(?:[^\\n]*)?$|#{{2,}}\\s+`(?P<path_hash_backtick>[^`\\n]+?)`(?:[^\\n]*)?$|#{{2,}}\\s+(?:.*?)?(?P<action_word_hash>{actions}):\\s*(?P<content_hash>.*)$|`(?P<path_backtick_only>[^`\\n]+?)`(?:[^\\n]*)?$|(?P<num>\\d+)\\.\\s+`(?P<path_numbered_backtick>[^`\\n]+?)`(?:[^\\n]*)?$|\\*\\*\\s*`(?P<path_bold_backtick>[^`\\n]+?)`\\s*\\*\\*(?:[^\\n]*)?$)",
         actions = actions // Argument for format!
     );
     // Explanation of changes:
@@ -24,10 +24,11 @@ pub static HEADER_REGEX: Lazy<Regex> = Lazy::new(|| {
     //   - `content_bold` captures `.+?` (non-greedy) after `Action: \s*`. <--- Reverted to non-greedy
     //   - Requires `\s*\*\*` after content.
     //   - Added `(?:[^\n]*)?$` back to allow optional trailing text AFTER the closing **. <--- FIX
-    // - **Hash (`## Action: ...`)**:
+    // - **Hash (`##... Action: ...`)**:
+    //   - `#{2,}` allows two or more hash symbols.
+    //   - `(?:.*?)?` non-greedily captures any preceding text on the line.
     //   - `action_word_hash` captures the action.
     //   - `content_hash` captures `.*` (greedy, zero or more chars) after `Action: \s*`.
-    //   - Requires `$` at the end. Extraction logic handles parsing `content_hash`.
     // - **Backtick paths (`## `path``, `` `path` ``, `1. `path``, `**`path`**`)**:
     //   - These alternatives remain largely unchanged, capturing the path inside backticks specifically.
     //   - They still allow optional trailing text `(?:[^\n]*)?$` after the closing backtick/bold marker.

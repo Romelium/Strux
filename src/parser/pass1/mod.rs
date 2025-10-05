@@ -11,14 +11,14 @@ mod action_determiner;
 mod block_processor;
 mod external_delete_special;
 mod external_header;
-mod fence_finder;
+pub(crate) mod fence_finder;
 #[cfg(test)] // Conditionally compile the test module
 mod fence_finder_tests; // ADDED test module
 mod internal_comment_handler;
 mod internal_header;
 mod internal_standard_handler;
 mod types;
-mod utils;
+pub(crate) mod utils;
 mod wrapped_create_handler;
 mod wrapped_header;
 
@@ -29,6 +29,7 @@ pub(crate) fn run_pass1(
     parse_offset: usize,
     actions_with_pos: &mut Vec<(usize, Action)>,
     processed_header_starts: &mut HashSet<usize>,
+    all_code_block_ranges: &mut HashSet<(usize, usize)>,
     processed_code_block_ranges: &mut HashSet<(usize, usize)>,
 ) -> Result<(), ParseError> {
     let mut current_search_pos = 0;
@@ -90,6 +91,7 @@ pub(crate) fn run_pass1(
             original_block_start,
             actions_with_pos,
             processed_header_starts,
+            all_code_block_ranges,
             processed_code_block_ranges,
         )?;
 

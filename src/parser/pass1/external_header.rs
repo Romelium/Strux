@@ -8,6 +8,7 @@ use crate::parser::helpers::ensure_trailing_newline;
 use crate::parser::pass1::external_delete_special;
 use crate::parser::path_utils::validate_path_format;
 use crate::parser::regex::HEADER_REGEX; // Import the new module
+use std::collections::HashSet;
 
 /// Checks for and handles an external header preceding a code block.
 /// This applies to *any* code block, including ```markdown.
@@ -18,6 +19,7 @@ pub(crate) fn handle_external_header(
     block_content_start: usize,
     block_content_end: usize,
     parse_offset: usize,
+    processed_header_starts: &mut HashSet<usize>,
 ) -> Result<Option<(Action, usize)>, ParseError> {
     // Returns (Action, header_start_pos_rel)
     let fence_line_start_rel = content[..fence_start_pos].rfind('\n').map_or(0, |n| n + 1);
@@ -77,6 +79,7 @@ pub(crate) fn handle_external_header(
                     "Warning: Invalid path format in external header '{}'. Skipping.",
                     stripped_prev_line
                 );
+                processed_header_starts.insert(prev_line_start_rel + parse_offset);
                 return Ok(None);
             }
 

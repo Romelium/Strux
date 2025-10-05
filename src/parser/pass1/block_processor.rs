@@ -21,6 +21,7 @@ pub(crate) fn process_single_block(
     original_block_start: usize,
     actions_with_pos: &mut Vec<(usize, Action)>,
     processed_header_starts: &mut HashSet<usize>,
+    all_code_block_ranges: &mut HashSet<(usize, usize)>,
     processed_code_block_ranges: &mut HashSet<(usize, usize)>,
 ) -> Result<(), ParseError> {
     // Determine the action type and source associated with this block
@@ -36,41 +37,32 @@ pub(crate) fn process_single_block(
         processed_header_starts,
         processed_code_block_ranges,
     )?; // Use ? here
+    let action_found = determination_result.is_some();
 
-    // Process the result
-    match determination_result {
-        // Destructuring the tuple works the same with the type alias
-        Some((action, header_pos_rel, action_source)) => {
-            // Add action if found and log skips
-            action_adder::add_action_or_log_skip(
-                Some(action), // Pass action
-                Some(header_pos_rel),
-                action_source,
-                parse_offset,
-                block_content_start,
-                original_block_start,
-                actions_with_pos,
-                processed_header_starts,
-            );
-        }
-        None => {
-            // No action associated with this block from any known source
-            action_adder::add_action_or_log_skip(
-                None,
-                None,
-                "unknown", // Mark source as unknown
-                parse_offset,
-                block_content_start,
-                original_block_start,
-                actions_with_pos,
-                processed_header_starts,
-            );
-        }
+    if let Some((action, header_pos_rel, action_source)) = determination_result {
+        action_adder::add_action(
+            action,
+            header_pos_rel,
+            action_source,
+            parse_offset,
+            actions_with_pos,
+            processed_header_starts,
+        );
+    } else {
+        // The block was unassociated in this pass. Log it.
+        println!(
+            "    Code block at original pos {} has no associated action header (checked external, wrapped, internal). Leaving for Pass 2.",
+            original_block_start
+        );
     }
 
-    // Always record the block range if we successfully found opening and closing fences,
-    // unless it was already added by the wrapped header logic pairing it with *this* block.
-    if !processed_code_block_ranges.contains(&(fence_start_pos, block_outer_end)) {
+    // Always record that this range is a code block.
+    all_code_block_ranges.insert((fence_start_pos, block_outer_end));
+
+    // ONLY record the block range if an action was found for it in this pass.
+    // Wrapped actions mark their content blocks inside the determiner, so this
+    // correctly handles external/internal actions.
+    if action_found && !processed_code_block_ranges.contains(&(fence_start_pos, block_outer_end)) {
         processed_code_block_ranges.insert((fence_start_pos, block_outer_end));
     }
 

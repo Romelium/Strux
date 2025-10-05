@@ -10,7 +10,8 @@ mod header_utils;
 mod helpers;
 mod internal_comment;
 mod pass1;
-mod pass2;
+mod pass2; // Find unassociated content headers and link forward
+mod pass3; // Find standalone Delete/Move headers
 mod path_utils;
 mod regex; // Contains regex definitions
 
@@ -38,6 +39,7 @@ pub fn parse_markdown(markdown_content: &str) -> Result<Vec<Action>, ParseError>
     let mut actions_with_pos: Vec<(usize, Action)> = Vec::new();
     let mut processed_header_starts: HashSet<usize> = HashSet::new();
     // Store (start, end) byte indices relative to content_to_parse
+    let mut all_code_block_ranges: HashSet<(usize, usize)> = HashSet::new();
     let mut processed_code_block_ranges: HashSet<(usize, usize)> = HashSet::new();
 
     let (content_to_parse, parse_offset) = helpers::preprocess_markdown(markdown_content);
@@ -48,9 +50,24 @@ pub fn parse_markdown(markdown_content: &str) -> Result<Vec<Action>, ParseError>
     }
 
     // --- Pass 1: Find Code Blocks and associate actions ---
-    println!("Step 1: Locating code blocks and associating actions...");
+    println!(
+        "Step 1: Locating code blocks and associating with adjacent/internal/wrapped headers..."
+    );
     pass1::run_pass1(
         // Now calls the function in the pass1 module
+        content_to_parse,
+        parse_offset,
+        &mut actions_with_pos,
+        &mut processed_header_starts,
+        &mut all_code_block_ranges,
+        &mut processed_code_block_ranges,
+    )?;
+
+    // --- Pass 2: Find unassociated content headers and link to next block ---
+    println!(
+        "\nStep 2: Locating unassociated content headers and linking to subsequent code blocks..."
+    );
+    pass2::run_pass2(
         content_to_parse,
         parse_offset,
         &mut actions_with_pos,
@@ -58,15 +75,14 @@ pub fn parse_markdown(markdown_content: &str) -> Result<Vec<Action>, ParseError>
         &mut processed_code_block_ranges,
     )?;
 
-    // --- Pass 2: Find standalone Delete headers and orphaned Create ---
-    println!("\nStep 2: Locating standalone Delete headers and orphaned Create...");
-    pass2::run_pass2(
-        // Now calls the function in the pass2 module
+    // --- Pass 3: Find standalone Delete/Move headers ---
+    println!("\nStep 3: Locating standalone Delete/Move headers...");
+    pass3::run_pass3(
         content_to_parse,
         parse_offset,
         &mut actions_with_pos,
-        &processed_header_starts,     // Pass as immutable ref
-        &processed_code_block_ranges, // Pass as immutable ref
+        &processed_header_starts, // Pass as immutable ref
+        &all_code_block_ranges,   // Pass as immutable ref
     )?;
 
     // --- Sort actions by original position ---
