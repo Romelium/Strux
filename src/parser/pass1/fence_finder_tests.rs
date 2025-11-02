@@ -456,4 +456,21 @@ mod tests {
             content.rfind("\t```\t").unwrap()
         );
     }
+
+    #[test]
+    fn five_tick_block_with_nested_three_and_four() {
+        let content = "`````\nOuter five\n```\nInner three\n```\n````\nInner four\n````\nOuter five continues\n`````";
+        let fence_chars = "`````";
+        let search_start_pos = content.find('\n').unwrap() + 1;
+        let closing_match = find_closing_fence(content, fence_chars, search_start_pos);
+        assert!(
+            closing_match.is_some(),
+            "Failed on five_tick_block. Content:\n{}",
+            content
+        );
+        assert_eq!(
+            closing_match.unwrap().start(),
+            content.rfind("`````").unwrap()
+        );
+    }
 }

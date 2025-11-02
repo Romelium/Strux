@@ -2,21 +2,22 @@
 
 use regex::{Match, RegexBuilder};
 
-// Enum to represent the type of fence event
+// Enum to represent the type of fence event for sorting.
+// Lower discriminant = higher priority if at same position.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-enum EventType {
-    TargetClose, // Highest priority for tie-breaking
-    OtherOpen,
-    TargetOpen, // Lowest priority if at same location as TargetClose
+enum EventKind {
+    TargetClose,
+    AnyOpen,
 }
 
 // Struct to hold event details for sorting
 #[derive(Debug)]
 struct Event<'a> {
     pos: usize,
-    priority_order: EventType, // Lower value = higher processing priority
+    kind: EventKind,
     match_obj: Match<'a>,
-    actual_event_type: EventType, // To know what action to take
+    // Store the captured fence string for 'AnyOpen' events
+    fence_chars: Option<&'a str>,
 }
 
 /// Finds the matching closing fence for a given opening fence, handling nesting.
@@ -33,26 +34,15 @@ pub(crate) fn find_closing_fence<'a>(
     );
 
     let escaped_target_fence = regex::escape(target_fence_chars);
-    let target_opening_pattern = format!(r"(?m)^\s*{}([^`\n\r]*)(\r?\n)", escaped_target_fence);
     let target_closing_pattern = format!(r"(?m)^[ \t]*{}[ \t]*$", escaped_target_fence);
+    // Regex for ANY opening fence of 3+ backticks. Capture the fence itself.
+    let any_opening_pattern = r"(?m)^\s*(`{3,})[^`\n\r]*(\r?\n)";
 
-    let other_fence_chars = if target_fence_chars == "```" {
-        "````"
-    } else {
-        "```"
-    };
-    let escaped_other_fence = regex::escape(other_fence_chars);
-    let other_opening_pattern = format!(r"(?m)^\s*{}([^`\n\r]*)(\r?\n)", escaped_other_fence);
-
-    let target_opening_re = RegexBuilder::new(&target_opening_pattern)
-        .crlf(true)
-        .build()
-        .unwrap();
     let target_closing_re = RegexBuilder::new(&target_closing_pattern)
         .crlf(true)
         .build()
         .unwrap();
-    let other_opening_re = RegexBuilder::new(&other_opening_pattern)
+    let any_opening_re = RegexBuilder::new(any_opening_pattern)
         .crlf(true)
         .build()
         .unwrap();
@@ -71,25 +61,20 @@ pub(crate) fn find_closing_fence<'a>(
         if let Some(m) = target_closing_re.find_at(content, current_pos) {
             candidates.push(Event {
                 pos: m.start(),
-                priority_order: EventType::TargetClose,
+                kind: EventKind::TargetClose,
                 match_obj: m,
-                actual_event_type: EventType::TargetClose,
+                fence_chars: None,
             });
         }
-        if let Some(m) = other_opening_re.find_at(content, current_pos) {
+        // Find next potential opening fence of *any* type
+        if let Some(caps) = any_opening_re.captures_at(content, current_pos) {
+            let full_match = caps.get(0).unwrap();
+            let fence_match = caps.get(1).unwrap();
             candidates.push(Event {
-                pos: m.start(),
-                priority_order: EventType::OtherOpen,
-                match_obj: m,
-                actual_event_type: EventType::OtherOpen,
-            });
-        }
-        if let Some(m) = target_opening_re.find_at(content, current_pos) {
-            candidates.push(Event {
-                pos: m.start(),
-                priority_order: EventType::TargetOpen,
-                match_obj: m,
-                actual_event_type: EventType::TargetOpen,
+                pos: full_match.start(),
+                kind: EventKind::AnyOpen,
+                match_obj: full_match,
+                fence_chars: Some(fence_match.as_str()),
             });
         }
 
@@ -101,20 +86,15 @@ pub(crate) fn find_closing_fence<'a>(
             return None;
         }
 
-        // Sort by position, then by priority_order (lower enum discriminant means higher priority)
-        candidates.sort_by(|a, b| {
-            a.pos
-                .cmp(&b.pos)
-                .then_with(|| a.priority_order.cmp(&b.priority_order))
-        });
+        // Sort by position, then by kind (TargetClose wins if at same position)
+        candidates.sort_by(|a, b| a.pos.cmp(&b.pos).then_with(|| a.kind.cmp(&b.kind)));
 
         let earliest_event = &candidates[0];
         let current_event_match = earliest_event.match_obj;
 
         println!(
-            "[find_closing_fence]   Selected Event: {:?}, type: {:?}, match: {:?}",
-            earliest_event.priority_order,
-            earliest_event.actual_event_type,
+            "[find_closing_fence]   Selected Event: {:?}, match: {:?}",
+            earliest_event.kind,
             (
                 current_event_match.start(),
                 current_event_match.end(),
@@ -122,8 +102,8 @@ pub(crate) fn find_closing_fence<'a>(
             )
         );
 
-        match earliest_event.actual_event_type {
-            EventType::TargetClose => {
+        match earliest_event.kind {
+            EventKind::TargetClose => {
                 println!(
                     "[find_closing_fence]   Event Action: Target Close at {}-{}",
                     current_event_match.start(),
@@ -144,34 +124,38 @@ pub(crate) fn find_closing_fence<'a>(
                     return None;
                 }
             }
-            EventType::TargetOpen => {
+            EventKind::AnyOpen => {
+                let opening_fence_chars = earliest_event.fence_chars.unwrap();
                 println!(
-                    "[find_closing_fence]   Event Action: Target Open at {}-{}",
+                    "[find_closing_fence]   Event Action: Any Open ('{}') at {}-{}",
+                    opening_fence_chars,
                     current_event_match.start(),
                     current_event_match.end()
                 );
-                level += 1;
-                current_pos = current_event_match.end();
-            }
-            EventType::OtherOpen => {
-                println!(
-                    "[find_closing_fence]   Event Action: Other Open ('{}') at {}-{}",
-                    other_fence_chars,
-                    current_event_match.start(),
-                    current_event_match.end()
-                );
-                if let Some(other_close_match) =
-                    find_closing_fence(content, other_fence_chars, current_event_match.end())
-                {
-                    println!(
-                        "[find_closing_fence]     Skipped other block from {} to {}",
-                        current_event_match.start(),
-                        other_close_match.end()
-                    );
-                    current_pos = other_close_match.end();
-                } else {
-                    println!("[find_closing_fence]     Malformed/unclosed 'other' block starting at {}. Treating as text and continuing search for target '{}'.", current_event_match.start(), target_fence_chars);
+
+                if opening_fence_chars == target_fence_chars {
+                    // Nested block of the same type
+                    level += 1;
                     current_pos = current_event_match.end();
+                } else {
+                    // Nested block of a different type, we need to find its end and skip over it
+                    if let Some(other_close_match) =
+                        find_closing_fence(content, opening_fence_chars, current_event_match.end())
+                    {
+                        println!(
+                            "[find_closing_fence]     Skipped nested block from {} to {}",
+                            current_event_match.start(),
+                            other_close_match.end()
+                        );
+                        current_pos = other_close_match.end();
+                    } else {
+                        // Malformed/unclosed inner block. Instead of failing the whole search,
+                        // treat this unclosed opening fence as simple text and continue the
+                        // search for the original target from after this line. This handles
+                        // cases where content inside a block looks like a fence but isn't.
+                        println!("[find_closing_fence]     Unclosed nested block starting at {}. Treating as text and continuing search for target '{}'.", current_event_match.start(), target_fence_chars);
+                        current_pos = current_event_match.end();
+                    }
                 }
             }
         }
