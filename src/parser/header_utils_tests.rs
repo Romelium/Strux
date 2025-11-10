@@ -284,3 +284,25 @@ fn test_get_action_type_invalid() {
     assert_eq!(get_action_type(""), None);
     assert_eq!(get_action_type(" Patch File "), None);
 }
+
+#[test]
+fn test_extract_header_too_many_spaces_is_invalid() {
+    // This path has 6 spaces, which is > 5.
+    let input = "## File: this is a very long sentence not a file path.txt";
+    let caps = get_captures(input).expect("Regex should capture this line");
+    // The extractor should return None because is_path_valid_for_action fails.
+    assert!(
+        extract_header_action_details(&caps).is_none(),
+        "Header with > 5 spaces in path should be considered invalid"
+    );
+
+    // Test a path with exactly 5 spaces, which should be valid.
+    let input_ok = "## File: path with five spaces is ok.txt";
+    let caps_ok = get_captures(input_ok).expect("Regex should capture this line");
+    let details_ok = extract_header_action_details(&caps_ok);
+    assert!(
+        details_ok.is_some(),
+        "Header with 5 spaces in path should be valid"
+    );
+    assert_eq!(details_ok.unwrap().path, "path with five spaces is ok.txt");
+}

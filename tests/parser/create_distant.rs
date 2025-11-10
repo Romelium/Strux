@@ -121,3 +121,21 @@ fn test_parse_complex_distant_header() {
         Some("content\n"),
     );
 }
+
+#[test]
+fn test_parse_distant_header_with_internal_rust_doc_comment() {
+    // This tests that an internal comment heuristic doesn't incorrectly claim a block
+    // that belongs to a distant header. The `//!` comment should be ignored as a header.
+    let md = "\n### File: `src/chunk.rs`\n\nSome descriptive text about the chunk.\n\n```rs\n//! A generic 3D grid data structure for storing chunk data.\nconst SIZE: usize = 16;\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert_eq!(actions.len(), 1);
+    assert_action(
+        actions.first(),
+        ActionType::Create,
+        "src/chunk.rs",
+        None,
+        Some(
+            "//! A generic 3D grid data structure for storing chunk data.\nconst SIZE: usize = 16;\n",
+        ),
+    );
+}

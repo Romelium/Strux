@@ -87,7 +87,7 @@ pub(crate) fn extract_header_action_details(caps: &Captures) -> Option<ParsedHea
 
 /// Helper to check if a path string (after initial parsing) is valid for an action.
 /// Currently checks if it's non-empty and not just backticks.
-fn is_path_valid_for_action(path_str: &str) -> bool {
+pub(crate) fn is_path_valid_for_action(path_str: &str) -> bool {
     if path_str.is_empty() {
         return false;
     }
@@ -98,10 +98,14 @@ fn is_path_valid_for_action(path_str: &str) -> bool {
     if path_str == "\"" {
         return false;
     }
-    // Add other similar checks if needed, e.g., for single quotes
-    // if path_str == "'" {
-    //     return false;
-    // }
+    // Heuristic: If a path has too many spaces, it's likely a sentence, not a path.
+    if path_str.chars().filter(|&c| c == ' ').count() > 5 {
+        println!(
+            "    Info: Skipping potential path due to high space count (> 5): '{}'",
+            path_str
+        );
+        return false;
+    }
     true
 }
 

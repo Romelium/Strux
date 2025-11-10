@@ -2,6 +2,7 @@
 
 use crate::core_types::{Action, ActionType};
 use crate::errors::ParseError;
+use crate::parser::header_utils::is_path_valid_for_action; // Import the validation function
 use crate::parser::helpers::ensure_trailing_newline;
 use crate::parser::path_utils::validate_path_format;
 use std::collections::HashSet;
@@ -28,6 +29,14 @@ pub(crate) fn handle_internal_comment_header(
         eprintln!(
             "Warning: Invalid path format in internal comment header '{}'. Skipping.",
             context.stripped_first_line // Use context field
+        );
+        return Ok(None);
+    }
+    // Apply general path validity checks, including the space count heuristic
+    if !is_path_valid_for_action(&path) {
+        eprintln!(
+            "Warning: Path from internal comment header '{}' failed validity check. Skipping.",
+            context.stripped_first_line
         );
         return Ok(None);
     }

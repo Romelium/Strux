@@ -105,3 +105,22 @@ fn test_parse_internal_hash_file_header_empty_path_ignored() {
         "Internal ## File: header with empty path should be ignored"
     );
 }
+
+#[test]
+fn test_parse_internal_comment_too_many_spaces_ignored() {
+    // This has 6 spaces, so it should be ignored by the heuristic.
+    let md = "\n```\n// File: this is a sentence not a file path.txt\nContent\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert!(
+        actions.is_empty(),
+        "Internal comment header with > 5 spaces should be ignored"
+    );
+
+    // This has 7 spaces.
+    let md2 = "\n```\n// this is also a sentence not a file path.txt\nContent\n```\n";
+    let actions2 = parse_markdown(md2).expect("Parsing failed");
+    assert!(
+        actions2.is_empty(),
+        "Internal comment header (no 'File:') with > 5 spaces should be ignored"
+    );
+}

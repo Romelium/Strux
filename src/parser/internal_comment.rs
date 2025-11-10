@@ -31,6 +31,12 @@ pub(crate) fn extract_path_from_internal_comment<'a>(
     else if let Some(path_part) = stripped_line.strip_prefix("//") {
         let potential_path = path_part.trim();
 
+        // Heuristic: Ignore Rust-style doc comments (//! or /*!) to avoid false positives.
+        // Check the original stripped line, not the part after the prefix.
+        if stripped_line.starts_with("//!") || stripped_line.starts_with("/*!") {
+            return None;
+        }
+
         // Basic validation: not empty
         if potential_path.is_empty() {
             return None;
