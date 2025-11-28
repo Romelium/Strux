@@ -12,27 +12,16 @@ pub static HEADER_REGEX: Lazy<Regex> = Lazy::new(|| {
     let actions = &*VALID_ACTIONS_REGEX_STR; // Dereference Lazy<String>
 
     let pattern = format!(
-        // **Action: content**: Capture content greedily, allow optional trailing text after **.
-        // ## Action: content: Capture content greedily, no optional trailing text needed here (extractor handles).
-        // Backtick versions remain specific but allow optional trailing text after marker.
-        "(?m)^(?:\\*\\*\\s*(?P<action_word_bold>{actions}):\\s*(?P<content_bold>.+?)\\s*\\*\\*(?:[^\\n]*)?$|#{{2,}}\\s+`(?P<path_hash_backtick>[^`\\n]+?)`(?:[^\\n]*)?$|#{{2,}}\\s+(?:.*?)?(?P<action_word_hash>{actions}):\\s*(?P<content_hash>.*)$|`(?P<path_backtick_only>[^`\\n]+?)`(?:[^\\n]*)?$|(?P<num>\\d+)\\.\\s+`(?P<path_numbered_backtick>[^`\\n]+?)`(?:[^\\n]*)?$|\\*\\*\\s*`(?P<path_bold_backtick>[^`\\n]+?)`\\s*\\*\\*(?:[^\\n]*)?$)",
+        // 1. Bold Action: **Action: content**
+        // 2. Hash Backtick: #+ `path`
+        // 3. Hash Action: #+ [text]Action[:] content (Colon is now optional, hashes 1+)
+        // 4. Backtick Only: `path`
+        // 5. Numbered: [#+] int. content (Hashes optional, content generic)
+        // 6. Bold Backtick: **`path`**
+        "(?m)^(?:\\*\\*\\s*(?P<action_word_bold>{actions}):\\s*(?P<content_bold>.+?)\\s*\\*\\*(?:[^\\n]*)?$|#+\\s+`(?P<path_hash_backtick>[^`\\n]+?)`(?:[^\\n]*)?$|#+\\s+(?:.*?)?(?P<action_word_hash>{actions})(?::\\s*|\\s+)(?P<content_hash>.*)$|`(?P<path_backtick_only>[^`\\n]+?)`(?:[^\\n]*)?$|(?:#+\\s+)?(?P<num>\\d+)\\.\\s+(?P<content_numbered>.*)$|\\*\\*\\s*`(?P<path_bold_backtick>[^`\\n]+?)`\\s*\\*\\*(?:[^\\n]*)?)",
         actions = actions // Argument for format!
     );
-    // Explanation of changes:
-    // - **Bold (`**...**`)**:
-    //   - `action_word_bold` captures the action.
-    //   - `content_bold` captures `.+?` (non-greedy) after `Action: \s*`. <--- Reverted to non-greedy
-    //   - Requires `\s*\*\*` after content.
-    //   - Added `(?:[^\n]*)?$` back to allow optional trailing text AFTER the closing **. <--- FIX
-    // - **Hash (`##... Action: ...`)**:
-    //   - `#{2,}` allows two or more hash symbols.
-    //   - `(?:.*?)?` non-greedily captures any preceding text on the line.
-    //   - `action_word_hash` captures the action.
-    //   - `content_hash` captures `.*` (greedy, zero or more chars) after `Action: \s*`.
-    // - **Backtick paths (`## `path``, `` `path` ``, `1. `path``, `**`path`**`)**:
-    //   - These alternatives remain largely unchanged, capturing the path inside backticks specifically.
-    //   - They still allow optional trailing text `(?:[^\n]*)?$` after the closing backtick/bold marker.
-    // println!("[REGEX INIT] Revised HEADER_REGEX pattern:\n{}", pattern); // DEBUG (optional)
+
     Regex::new(&pattern).expect("Failed to compile HEADER_REGEX")
 });
 

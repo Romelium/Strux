@@ -5,7 +5,7 @@
 mod common;
 
 // Declare the specific test modules (tests/parser/*.rs)
-#[path = "parser/append_prepend.rs"] // ADDED
+#[path = "parser/append_prepend.rs"]
 mod append_prepend;
 #[path = "parser/create_distant.rs"]
 mod create_distant;
@@ -19,6 +19,8 @@ mod create_wrapped;
 mod delete;
 #[path = "parser/edge_cases.rs"]
 mod edge_cases;
+#[path = "parser/flexible_headers.rs"] // ADDED
+mod flexible_headers;
 #[path = "parser/heuristics.rs"]
 mod heuristics;
 #[path = "parser/invalid_paths.rs"]

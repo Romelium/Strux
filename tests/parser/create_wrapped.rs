@@ -33,6 +33,36 @@ fn test_parse_wrapped_bold_file_header() {
 }
 
 #[test]
+fn test_parse_wrapped_numbered_list_header() {
+    // New test for flexible numbered list inside wrapper
+    let md = "\n```markdown\n1. wrapped/list_item.txt\n```\n\n```\ncontent\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert_eq!(actions.len(), 1);
+    assert_action(
+        actions.first(),
+        ActionType::Create,
+        "wrapped/list_item.txt",
+        None,
+        Some("content\n"),
+    );
+}
+
+#[test]
+fn test_parse_wrapped_create_keyword_header() {
+    // New test for flexible Create keyword inside wrapper
+    let md = "\n```markdown\n## Create wrapped/keyword.txt\n```\n\n```\ncontent\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert_eq!(actions.len(), 1);
+    assert_action(
+        actions.first(),
+        ActionType::Create,
+        "wrapped/keyword.txt",
+        None,
+        Some("content\n"),
+    );
+}
+
+#[test]
 fn test_parse_wrapped_file_header_not_followed_by_block() {
     let md =
         "\n```markdown\n## File: orphan_wrapped.txt\n```\n\nThis is just text, not a code block.\n";

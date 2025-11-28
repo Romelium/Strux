@@ -7,8 +7,10 @@ use regex; // Needed for regex::escape
 pub const ACTION_FILE: &str = "File";
 pub const ACTION_DELETED_FILE: &str = "Deleted File";
 pub const ACTION_MOVED_FILE: &str = "Moved File";
-pub const ACTION_APPEND_FILE: &str = "Append File"; // New action
-pub const ACTION_PREPEND_FILE: &str = "Prepend File"; // New action
+pub const ACTION_APPEND_FILE: &str = "Append File";
+pub const ACTION_PREPEND_FILE: &str = "Prepend File";
+pub const ACTION_CREATE: &str = "Create";
+pub const ACTION_UPDATE: &str = "Update";
 
 // --- Parsing ---
 pub const INTERNAL_COMMENT_ACTION_PREFIX: &str = "// File:";
@@ -21,8 +23,10 @@ pub static VALID_ACTIONS_REGEX_STR: Lazy<String> = Lazy::new(|| {
         ACTION_FILE,
         ACTION_DELETED_FILE,
         ACTION_MOVED_FILE,
-        ACTION_APPEND_FILE,  // Added
-        ACTION_PREPEND_FILE, // Added
+        ACTION_APPEND_FILE,
+        ACTION_PREPEND_FILE,
+        ACTION_CREATE, // Added
+        ACTION_UPDATE, // Added
     ]
     .iter()
     .map(|a| regex::escape(a))

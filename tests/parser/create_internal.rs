@@ -63,6 +63,21 @@ fn test_parse_internal_hash_file_header_excluded() {
 }
 
 #[test]
+fn test_parse_internal_hash_create_keyword_excluded() {
+    // New test for flexible ## Create inside block
+    let md = "\n```yaml\n## Create config/flexible.yaml\nkey: value\n```\n";
+    let actions = parse_markdown(md).expect("Parsing failed");
+    assert_eq!(actions.len(), 1);
+    assert_action(
+        actions.first(),
+        ActionType::Create,
+        "config/flexible.yaml",
+        None,
+        Some("key: value\n"), // Header line excluded
+    );
+}
+
+#[test]
 fn test_parse_internal_hash_file_header_backticks_excluded() {
     let md = "\n```\n## File: `docs/My Document.md`\n# Title\nSome text.\n```\n";
     let actions = parse_markdown(md).expect("Parsing failed");

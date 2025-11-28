@@ -1,7 +1,8 @@
 //! Utilities for parsing markdown header lines (e.g., **Action: path**).
 
 use crate::constants::{
-    ACTION_APPEND_FILE, ACTION_DELETED_FILE, ACTION_FILE, ACTION_MOVED_FILE, ACTION_PREPEND_FILE,
+    ACTION_APPEND_FILE, ACTION_CREATE, ACTION_DELETED_FILE, ACTION_FILE, ACTION_MOVED_FILE,
+    ACTION_PREPEND_FILE, ACTION_UPDATE,
 }; // Added new actions
 use crate::core_types::ActionType;
 use regex::Captures;
@@ -29,7 +30,8 @@ pub(crate) fn extract_header_action_details(caps: &Captures) -> Option<ParsedHea
     } else if let Some(p) = caps.name("path_backtick_only") {
         action_word_opt = Some(ACTION_FILE.to_string());
         raw_content_opt = Some(p.as_str().trim().to_string());
-    } else if let Some(p) = caps.name("path_numbered_backtick") {
+    } else if let Some(p) = caps.name("content_numbered") {
+        // New generic numbered list capture
         action_word_opt = Some(ACTION_FILE.to_string());
         raw_content_opt = Some(p.as_str().trim().to_string());
     } else if let Some(p) = caps.name("path_bold_backtick") {
@@ -65,7 +67,7 @@ pub(crate) fn extract_header_action_details(caps: &Captures) -> Option<ParsedHea
                 }
             } else {
                 // For ACTION_FILE (including backtick-only cases), ACTION_DELETED_FILE,
-                // ACTION_APPEND_FILE, ACTION_PREPEND_FILE
+                // ACTION_APPEND_FILE, ACTION_PREPEND_FILE, ACTION_CREATE, ACTION_UPDATE
                 if let Some(path) = parse_single_path_from_content(&raw_content) {
                     if is_path_valid_for_action(&path) {
                         Some(ParsedHeaderAction {
@@ -204,13 +206,11 @@ fn parse_move_paths_from_content(raw_content: &str) -> Option<(String, String)> 
 /// Maps action word string to ActionType enum.
 pub(crate) fn get_action_type(action_word: &str) -> Option<ActionType> {
     match action_word {
-        ACTION_FILE => Some(ActionType::Create),
+        ACTION_FILE | ACTION_CREATE | ACTION_UPDATE => Some(ActionType::Create),
         ACTION_DELETED_FILE => Some(ActionType::Delete),
         ACTION_MOVED_FILE => Some(ActionType::Move),
-        ACTION_APPEND_FILE => Some(ActionType::Append), // New mapping
-        ACTION_PREPEND_FILE => Some(ActionType::Prepend), // New mapping
+        ACTION_APPEND_FILE => Some(ActionType::Append),
+        ACTION_PREPEND_FILE => Some(ActionType::Prepend),
         _ => None,
     }
 }
-
-// Test module moved to header_utils_tests.rs
